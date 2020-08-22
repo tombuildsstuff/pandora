@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/tombuildsstuff/pandora/sdk"
-	"github.com/tombuildsstuff/pandora/target"
 	"github.com/tombuildsstuff/pandora/target/eventhubs/resourcemanager/2018-01-01-preview/eventhub"
+	"github.com/tombuildsstuff/pandora/target/resources/resourcemanager/2018-05-01/resourcegroups"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func run(ctx context.Context) error {
 	tenantId := os.Getenv("ARM_TENANT_ID")
 	rInt := time.Now().Unix()
 	name := fmt.Sprintf("tom-pandora-%d", rInt)
-	input := target.CreateResourceGroupInput{
+	input := resourcegroups.CreateResourceGroupInput{
 		Location: "West Europe",
 		Tags: map[string]string{
 			"hello": "world",
@@ -37,10 +37,10 @@ func run(ctx context.Context) error {
 	}
 
 	auth := sdk.NewClientSecretAuthorizer(clientId, clientSecret, tenantId)
-	groupsClient := target.NewResourceGroupsClient(subscriptionId, auth)
+	groupsClient := resourcegroups.NewClient(subscriptionId, auth)
 	namespacesClient := eventhub.NewNamespacesClient(subscriptionId, auth)
 
-	id := target.NewResourceGroupID(name)
+	id := resourcegroups.NewResourceGroupID(name)
 
 	log.Printf("Creating %q", name)
 	if err := groupsClient.Create(ctx, id, input); err != nil {
@@ -58,7 +58,7 @@ func run(ctx context.Context) error {
 	log.Printf("Value for the Tag 'hello': %q..", group.ResourceGroup.Tags["hello"])
 
 	log.Printf("Updating tags..")
-	updateInput := target.UpdateResourceGroupInput{
+	updateInput := resourcegroups.UpdateResourceGroupInput{
 		Tags: &map[string]string{
 			"hello": "pandora",
 		},
