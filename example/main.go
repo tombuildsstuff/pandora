@@ -9,6 +9,7 @@ import (
 
 	"github.com/tombuildsstuff/pandora/sdk"
 	"github.com/tombuildsstuff/pandora/target"
+	"github.com/tombuildsstuff/pandora/target/eventhubs/resourcemanager/2018-01-01-preview/eventhub"
 )
 
 func main() {
@@ -22,7 +23,8 @@ func run(ctx context.Context) error {
 	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
 	subscriptionId := os.Getenv("ARM_SUBSCRIPTION_ID")
 	tenantId := os.Getenv("ARM_TENANT_ID")
-	name := fmt.Sprintf("tom-pandora-%d", time.Now().Unix())
+	rInt := time.Now().Unix()
+	name := fmt.Sprintf("tom-pandora-%d", rInt)
 	input := target.CreateResourceGroupInput{
 		Location: "West Europe",
 		Tags: map[string]string{
@@ -35,18 +37,20 @@ func run(ctx context.Context) error {
 	}
 
 	auth := sdk.NewClientSecretAuthorizer(clientId, clientSecret, tenantId)
-	client := target.NewResourceGroupsClient(subscriptionId, auth)
+	groupsClient := target.NewResourceGroupsClient(subscriptionId, auth)
+	namespacesClient := eventhub.NewNamespacesClient(subscriptionId, auth)
+
+	id := target.NewResourceGroupID(name)
 
 	log.Printf("Creating %q", name)
-	if err := client.Create(ctx, name, input); err != nil {
+	if err := groupsClient.Create(ctx, id, input); err != nil {
 		return fmt.Errorf("creating: %+v", err)
 	}
 
-	id := target.NewResourceGroupID(name)
 	log.Printf("Created %q", id.ID(subscriptionId))
 
 	log.Printf("Retrieving %q", name)
-	group, err := client.Get(ctx, id)
+	group, err := groupsClient.Get(ctx, id)
 	if err != nil {
 		return fmt.Errorf("retrieving: %+v", err)
 	}
@@ -59,20 +63,65 @@ func run(ctx context.Context) error {
 			"hello": "pandora",
 		},
 	}
-	if err := client.Update(ctx, id, updateInput); err != nil {
+	if err := groupsClient.Update(ctx, id, updateInput); err != nil {
 		return fmt.Errorf("updating: %+v", err)
 	}
 
 	log.Printf("Retrieving %q", name)
-	group, err = client.Get(ctx, id)
+	group, err = groupsClient.Get(ctx, id)
 	if err != nil {
 		return fmt.Errorf("retrieving: %+v", err)
 	}
 	log.Printf("Exists in %q..", group.ResourceGroup.Location)
 	log.Printf("Value for the Tag 'hello': %q..", group.ResourceGroup.Tags["hello"])
 
+	// add a nested item
+	namespaceName := fmt.Sprintf("tomdev%d", rInt)
+	namespaceId := eventhub.NewNamespaceID(id.Name, namespaceName)
+	createNamespaceInput := eventhub.CreateNamespaceInput{
+		Location: input.Location,
+		Sku: eventhub.Sku{
+			Name: eventhub.Basic,
+			Tier: eventhub.Basic,
+		},
+		Properties: eventhub.CreateNamespaceProperties{
+			IsAutoInflateEnabled: false,
+			ZoneRedundant:        false,
+		},
+		Tags: map[string]string{},
+	}
+	log.Printf("Adding a EventHub Namespace %q", namespaceName)
+	poller, err := namespacesClient.Create(ctx, namespaceId, createNamespaceInput)
+	if err != nil {
+		return fmt.Errorf("creating namespace: %+v", err)
+	}
+	log.Printf("Waiting for creation of %q", namespaceName)
+	if err := poller.PollUntilDone(ctx); err != nil {
+		return fmt.Errorf("waiting for creation: %+v", err)
+	}
+
+	log.Printf("Retrieving Namespace %q", namespaceName)
+	namespace, err := namespacesClient.Get(ctx, namespaceId)
+	if err != nil {
+		return fmt.Errorf("retrieving namespace: %+v", err)
+	}
+
+	log.Printf("ServiceBus Endpoint is at %q", namespace.Namespace.Properties.ServiceBusEndpoint)
+	time.Sleep(10 * time.Second)
+
+	log.Printf("Deleting EH namespace %q", namespaceName)
+	poller, err = namespacesClient.Delete(ctx, namespaceId)
+	if err != nil {
+		return fmt.Errorf("deleting namespace: %+v", err)
+	}
+	log.Printf("Waiting for deletion of %q", namespaceName)
+	if err := poller.PollUntilDone(ctx); err != nil {
+		return fmt.Errorf("waiting for deletion: %+v", err)
+	}
+	log.Printf("Deleted %q", namespaceName)
+
 	log.Printf("Deleting %q", name)
-	poller, err := client.Delete(ctx, id)
+	poller, err = groupsClient.Delete(ctx, id)
 	if err != nil {
 		return fmt.Errorf("deleting: %+v", err)
 	}

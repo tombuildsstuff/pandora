@@ -59,41 +59,31 @@ func (input CreateResourceGroupInput) Validate() error {
 	return fmt.Errorf("errors: %+v", errors)
 }
 
-func (client ResourceGroupsClient) Create(ctx context.Context, name string, input CreateResourceGroupInput) error {
-	uri := NewResourceGroupID(name).ID(client.subscriptionId)
+func (client ResourceGroupsClient) Create(ctx context.Context, id ResourceGroupID, input CreateResourceGroupInput) error {
 	req := sdk.PutHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
 			http.StatusOK,      // already exists
 			http.StatusCreated, // new
 		},
-		Uri: fmt.Sprintf("%s?api-version=%s", uri, client.apiVersion), // TODO: some kind of helper but whatever
+		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
+
 	if _, err := client.baseClient.PutJson(ctx, req); err != nil {
 		return fmt.Errorf("sending Request: %+v", err)
 	}
 	return nil
 }
 
-func (client ResourceGroupsClient) Delete(ctx context.Context, id ResourceGroupID) (*sdk.Poller, error) {
-	uri := id.ID(client.subscriptionId)
+func (client ResourceGroupsClient) Delete(ctx context.Context, id ResourceGroupID) (sdk.Poller, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
 			http.StatusAccepted, // delete accepted
 		},
-		Uri: fmt.Sprintf("%s?api-version=%s", uri, client.apiVersion), // TODO: some kind of helper but whatever
-	}
-	originalResp, err := client.baseClient.Delete(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("sending Request: %+v", err)
+		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 
-	poller, err := sdk.NewResourceManagerPoller(originalResp, &client.baseClient)
-	if err != nil {
-		return nil, fmt.Errorf("building poller: %+v", err)
-	}
-
-	return poller, nil
+	return client.baseClient.DeleteThenPoll(ctx, req)
 }
 
 type GetResourceGroup struct {
@@ -107,12 +97,11 @@ type GetResourceGroupResponse struct {
 }
 
 func (client ResourceGroupsClient) Get(ctx context.Context, id ResourceGroupID) (*GetResourceGroupResponse, error) {
-	uri := id.ID(client.subscriptionId)
 	req := sdk.GetHttpRequestInput{
 		ExpectedStatusCodes: []int{
 			http.StatusOK, // Exists
 		},
-		Uri: fmt.Sprintf("%s?api-version=%s", uri, client.apiVersion), // TODO: some kind of helper but whatever
+		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 
 	var out GetResourceGroup
@@ -133,13 +122,12 @@ type UpdateResourceGroupInput struct {
 }
 
 func (client ResourceGroupsClient) Update(ctx context.Context, id ResourceGroupID, input UpdateResourceGroupInput) error {
-	uri := id.ID(client.subscriptionId)
 	req := sdk.PatchHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
 			http.StatusOK, // already exists
 		},
-		Uri: fmt.Sprintf("%s?api-version=%s", uri, client.apiVersion), // TODO: some kind of helper but whatever
+		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 	if _, err := client.baseClient.PatchJson(ctx, req); err != nil {
 		return fmt.Errorf("sending Request: %+v", err)

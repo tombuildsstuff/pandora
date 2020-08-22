@@ -18,6 +18,11 @@ type ArmResourceId interface {
 	ID(subscriptionId string) string
 }
 
+func BuildResourceManagerURI(id ArmResourceId, subscriptionId, apiVersion string) string {
+	// TODO: support for additional query params
+	return fmt.Sprintf("%s?api-version=%s", id.ID(subscriptionId), apiVersion)
+}
+
 type ClientMetaData struct {
 	ResourceProvider *string
 }
@@ -56,6 +61,20 @@ func (c BaseClient) Delete(ctx context.Context, input DeleteHttpRequestInput) (*
 	}
 
 	return resp, nil
+}
+
+func (c BaseClient) DeleteThenPoll(ctx context.Context, input DeleteHttpRequestInput) (Poller, error) {
+	originalResp, err := c.Delete(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("sending Request: %+v", err)
+	}
+
+	poller, err := DeterminePoller(originalResp, &c, input.Uri)
+	if err != nil {
+		return nil, fmt.Errorf("building poller: %+v", err)
+	}
+
+	return poller, nil
 }
 
 type GetHttpRequestInput struct {
@@ -165,6 +184,20 @@ func (c BaseClient) PutJson(ctx context.Context, input PutHttpRequestInput) (*ht
 	}
 
 	return resp, nil
+}
+
+func (c BaseClient) PutJsonThenPoll(ctx context.Context, input PutHttpRequestInput) (Poller, error) {
+	originalResp, err := c.PutJson(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("sending Request: %+v", err)
+	}
+
+	poller, err := DeterminePoller(originalResp, &c, input.Uri)
+	if err != nil {
+		return nil, fmt.Errorf("building poller: %+v", err)
+	}
+
+	return poller, nil
 }
 
 func (c BaseClient) performAuthenticatedHttpRequest(ctx context.Context, req *http.Request, expectedStatusCodes []int) (*http.Response, error) {
