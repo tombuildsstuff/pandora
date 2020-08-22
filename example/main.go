@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/tombuildsstuff/pandora/resource-manager/eventhubs/2018-01-01-preview/eventhub"
+	"github.com/tombuildsstuff/pandora/resource-manager/resources/2018-05-01/resourcegroups"
 	"github.com/tombuildsstuff/pandora/sdk"
-	"github.com/tombuildsstuff/pandora/target/eventhubs/resourcemanager/2018-01-01-preview/eventhub"
-	"github.com/tombuildsstuff/pandora/target/resources/resourcemanager/2018-05-01/resourcegroups"
 )
 
 func main() {
