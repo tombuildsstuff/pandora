@@ -157,6 +157,20 @@ func (c BaseClient) PatchJson(ctx context.Context, input PatchHttpRequestInput) 
 	return resp, nil
 }
 
+func (c BaseClient) PatchJsonThenPoll(ctx context.Context, input PatchHttpRequestInput) (Poller, error) {
+	originalResp, err := c.PatchJson(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("sending Request: %+v", err)
+	}
+
+	poller, err := DeterminePoller(originalResp, &c, input.Uri)
+	if err != nil {
+		return nil, fmt.Errorf("building poller: %+v", err)
+	}
+
+	return poller, nil
+}
+
 type PutHttpRequestInput struct {
 	Body                interface{}
 	ExpectedStatusCodes []int
