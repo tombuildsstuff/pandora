@@ -3,13 +3,13 @@ package eventhub
 import "fmt"
 
 type NamespaceID struct {
-	Name string
+	Name          string
 	ResourceGroup string
 }
 
 func NewNamespaceID(resourceGroup, name string) NamespaceID {
 	return NamespaceID{
-		Name: name,
+		Name:          name,
 		ResourceGroup: resourceGroup,
 	}
 }
