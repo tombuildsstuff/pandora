@@ -15,6 +15,7 @@ func (sd serviceDefinition) outputPath() string {
 
 type packageDefinition struct {
 	packageName string
+	typeName    string
 	resourceId  ResourceIdDefinition
 	models      map[string]ModelDefinition
 	constants   map[string]ConstantDefinition

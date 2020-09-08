@@ -30,6 +30,11 @@ func (t ConstantsTemplater) Build() (*string, error) {
 		return nil, fmt.Errorf("building constants: %+v", err)
 	}
 
+	// if there are no constants
+	if constants == nil {
+		return nil, nil
+	}
+
 	template := fmt.Sprintf(`package %[1]s
 
 %[2]s

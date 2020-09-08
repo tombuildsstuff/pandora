@@ -22,6 +22,10 @@ func NewResourceManagerGenerator(client ResourceManagerService, outputDirectory 
 	}
 }
 
+// TODO: use the Operation Name in the file name so that we can have
+// multiple operations within a single package
+// e.g. `namespace_client.go`, `namespace_models.go` and `namespace`
+
 func (g ResourceManagerGenerator) Generate() error {
 	log.Printf("[DEBUG] Populating API information into Service Definitions..")
 	services, err := g.buildServiceDefinitions()
@@ -118,6 +122,7 @@ func (g ResourceManagerGenerator) buildServiceDefinitions() (*[]serviceDefinitio
 			log.Printf("[DEBUG] Appending Package %q..", operationName)
 			packages = append(packages, packageDefinition{
 				packageName: operationName,
+				typeName:    operationMetaData.Name,
 				resourceId:  operationDetails.ResourceId,
 				models:      schemas.Models,
 				constants:   schemas.Constants,
@@ -221,9 +226,10 @@ func (p packageGenerator) generateConstants(filePath string) error {
 
 func (p packageGenerator) generateIDParsers(filePath string) error {
 	packageName := p.packageDef.packageName
+	typeName := p.packageDef.typeName
 	resourceId := p.packageDef.resourceId
 
-	templater := templates.NewResourceIDTemplate(packageName, packageName, resourceId.Format, resourceId.Segments)
+	templater := templates.NewResourceIDTemplate(packageName, typeName, resourceId.Format, resourceId.Segments)
 	out, err := templater.Build()
 	if err != nil {
 		return fmt.Errorf("building template: %+v", err)
@@ -302,6 +308,7 @@ func (p packageGenerator) generateOperations(filePath string) error {
 
 	apiVersion := p.serviceDef.apiVersion
 	packageName := p.packageDef.packageName
+	typeName := p.packageDef.typeName
 	resourceProvider := p.serviceDef.resourceProvider
 
 	// this is resource manager so resourceProvider is guaranteed
@@ -309,7 +316,7 @@ func (p packageGenerator) generateOperations(filePath string) error {
 		return fmt.Errorf("resourceProvider was nil for a Resource Manager Operation")
 	}
 
-	templater := templates.NewResourceManagerClientTemplater(packageName, packageName, apiVersion, *resourceProvider, operations)
+	templater := templates.NewResourceManagerClientTemplater(packageName, typeName, apiVersion, *resourceProvider, operations)
 	output, err := templater.Build()
 	if err != nil {
 		return fmt.Errorf("templating: %+v", err)

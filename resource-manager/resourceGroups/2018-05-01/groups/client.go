@@ -9,25 +9,25 @@ import (
 	"github.com/tombuildsstuff/pandora/sdk/endpoints"
 )
 
-type GroupsClient struct {
+type ResourceGroupClient struct {
 	apiVersion     string
 	baseClient     sdk.BaseClient
 	subscriptionId string // TODO: making this Optional?
 }
 
-func NewGroupsClient(subscriptionId string, authorizer sdk.Authorizer) GroupsClient {
-	return NewGroupsClientWithBaseURI(endpoints.DefaultManagementEndpoint, subscriptionId, authorizer)
+func NewResourceGroupClient(subscriptionId string, authorizer sdk.Authorizer) ResourceGroupClient {
+	return NewResourceGroupClientWithBaseURI(endpoints.DefaultManagementEndpoint, subscriptionId, authorizer)
 }
 
-func NewGroupsClientWithBaseURI(endpoint string, subscriptionId string, authorizer sdk.Authorizer) GroupsClient {
-	return GroupsClient{
+func NewResourceGroupClientWithBaseURI(endpoint string, subscriptionId string, authorizer sdk.Authorizer) ResourceGroupClient {
+	return ResourceGroupClient{
 		apiVersion:     "2018-05-01",
 		baseClient:     sdk.DefaultBaseClient(endpoint, authorizer),
 		subscriptionId: subscriptionId,
 	}
 }
 
-func (client GroupsClient) Create(ctx context.Context, id GroupsId, input CreateResourceGroupInput) error {
+func (client ResourceGroupClient) Create(ctx context.Context, id ResourceGroupId, input CreateResourceGroupInput) error {
 	req := sdk.PutHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
@@ -42,7 +42,7 @@ func (client GroupsClient) Create(ctx context.Context, id GroupsId, input Create
 	return nil
 }
 
-func (client GroupsClient) Delete(ctx context.Context, id GroupsId) (sdk.Poller, error) {
+func (client ResourceGroupClient) Delete(ctx context.Context, id ResourceGroupId) (sdk.Poller, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
 			http.StatusAccepted, // deletion accepted,
@@ -53,12 +53,12 @@ func (client GroupsClient) Delete(ctx context.Context, id GroupsId) (sdk.Poller,
 	return client.baseClient.DeleteThenPoll(ctx, req)
 }
 
-type GetGroupsResponse struct {
+type GetResourceGroupResponse struct {
 	HttpResponse     *http.Response
 	GetResourceGroup *GetResourceGroup
 }
 
-func (client GroupsClient) Get(ctx context.Context, id GroupsId) (*GetGroupsResponse, error) {
+func (client ResourceGroupClient) Get(ctx context.Context, id ResourceGroupId) (*GetResourceGroupResponse, error) {
 	req := sdk.GetHttpRequestInput{
 		ExpectedStatusCodes: []int{
 			http.StatusOK, // ok
@@ -72,14 +72,14 @@ func (client GroupsClient) Get(ctx context.Context, id GroupsId) (*GetGroupsResp
 		return nil, fmt.Errorf("sending Request: %+v", err)
 	}
 
-	result := GetGroupsResponse{
+	result := GetResourceGroupResponse{
 		HttpResponse:     resp,
 		GetResourceGroup: &out,
 	}
 	return &result, nil
 }
 
-func (client GroupsClient) Update(ctx context.Context, id GroupsId, input UpdateResourceGroupInput) error {
+func (client ResourceGroupClient) Update(ctx context.Context, id ResourceGroupId, input UpdateResourceGroupInput) error {
 	req := sdk.PatchHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
@@ -94,7 +94,7 @@ func (client GroupsClient) Update(ctx context.Context, id GroupsId, input Update
 	return nil
 }
 
-func (client GroupsClient) MetaData() sdk.ClientMetaData {
+func (client ResourceGroupClient) MetaData() sdk.ClientMetaData {
 	resourceProvider := "Microsoft.Resources"
 	return sdk.ClientMetaData{
 		ResourceProvider: &resourceProvider,
