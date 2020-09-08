@@ -1,10 +1,9 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/rust-lang/rust/src/llvm-project/llgo/third_party/gofrontend/libgo/go/encoding/json"
 )
 
 type ResourceManagerService struct {
