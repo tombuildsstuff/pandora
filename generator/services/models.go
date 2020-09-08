@@ -85,13 +85,13 @@ type PropertyDefinition struct {
 type PropertyType string
 
 var (
-	Boolean  PropertyType = "boolean"
-	Constant PropertyType = "constant"
-	Integer  PropertyType = "integer"
-	Location PropertyType = "location"
-	Object   PropertyType = "object"
-	Tags     PropertyType = "tags"
-	String   PropertyType = "string"
+	Boolean  PropertyType = "Boolean"
+	Constant PropertyType = "Constant"
+	Integer  PropertyType = "Integer"
+	Location PropertyType = "Location"
+	Object   PropertyType = "Object"
+	Tags     PropertyType = "Tags"
+	String   PropertyType = "String"
 )
 
 type ValidationDefinition struct {
@@ -103,7 +103,7 @@ type ValidationDefinition struct {
 type ValidationType string
 
 var (
-	Range ValidationType = "range"
+	Range ValidationType = "Range"
 )
 
 type OperationMetaData struct {

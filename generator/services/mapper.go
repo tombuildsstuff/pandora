@@ -99,9 +99,15 @@ func (pd packageDefinition) determineTypeForProperty(def PropertyDefinition) (*s
 		out = "int64"
 		break
 
+	case String:
+		out = "string"
+		break
+
 	case Tags:
 		out = "map[string]string"
 		break
+
+		// TODO: implement others incl list
 	}
 
 	return &out, nil

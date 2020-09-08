@@ -41,7 +41,7 @@ type PropertyValidationDefinition struct {
 type PropertyValidationType string
 
 var (
-	Range PropertyValidationType = "range"
+	Range PropertyValidationType = "Range"
 )
 
 func (g ModelsTemplater) Build() (*string, error) {

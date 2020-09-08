@@ -2,20 +2,20 @@ package namespaces
 
 import "fmt"
 
-type EventHubNamespaceId struct {
+type NamespacesId struct {
 	SubscriptionId string
 	ResourceGroup  string
 	Namespace      string
 }
 
-func NewEventHubNamespaceId(subscriptionId string, resourceGroup string, namespace string) EventHubNamespaceId {
-	return EventHubNamespaceId{
+func NewNamespacesId(subscriptionId string, resourceGroup string, namespace string) NamespacesId {
+	return NamespacesId{
 		SubscriptionId: subscriptionId,
 		ResourceGroup:  resourceGroup,
 		Namespace:      namespace,
 	}
 }
 
-func (id EventHubNamespaceId) ID() string {
-	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.EventHub/namespaces/%s", id.SubscriptionId, id.ResourceGroup, id.Namespace)
+func (id NamespacesId) ID() string {
+	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.EventHubs/namespaces/%s", id.SubscriptionId, id.ResourceGroup, id.Namespace)
 }

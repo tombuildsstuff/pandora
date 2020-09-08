@@ -9,8 +9,8 @@ import (
 
 type sdkGenerator struct{}
 
-func (p sdkGenerator) directory(workingDirectory string) string {
-	return fmt.Sprintf("%s/sdk", workingDirectory)
+func (p sdkGenerator) directory(workingDirectory, packageName string) string {
+	return fmt.Sprintf("%s/%s", workingDirectory, packageName)
 }
 
 func (p sdkGenerator) generate(serviceDef serviceDefinition, packageDef packageDefinition, outputPath string) error {

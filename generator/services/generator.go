@@ -172,7 +172,7 @@ type packageGenerator struct {
 }
 
 type generator interface {
-	directory(workingDirectory string) string
+	directory(workingDirectory, packageName string) string
 	generate(serviceDef serviceDefinition, packageDef packageDefinition, outputPath string) error
 	name() string
 }
@@ -184,7 +184,7 @@ func (p packageGenerator) generate() error {
 
 	for _, generator := range generators {
 		log.Printf("[DEBUG] Starting generating %s..", generator.name())
-		directory := generator.directory(p.outputDirectory)
+		directory := generator.directory(p.outputDirectory, p.packageDef.packageName)
 		os.MkdirAll(directory, os.ModePerm)
 
 		if err := generator.generate(p.serviceDef, p.packageDef, directory); err != nil {

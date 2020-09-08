@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	if err := generateResourceManager("http://localhost:2020"); err != nil {
+	if err := generateResourceManager("http://localhost:5000"); err != nil {
 		panic(err)
 	}
 }
