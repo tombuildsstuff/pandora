@@ -3,15 +3,17 @@ package groups
 import "fmt"
 
 type ResourceGroupId struct {
-	ResourceGroup string
+	SubscriptionId string
+	ResourceGroup  string
 }
 
-func NewResourceGroupId(resourceGroup string) ResourceGroupId {
+func NewResourceGroupId(subscriptionId string, resourceGroup string) ResourceGroupId {
 	return ResourceGroupId{
-		ResourceGroup: resourceGroup,
+		SubscriptionId: subscriptionId,
+		ResourceGroup:  resourceGroup,
 	}
 }
 
-func (id ResourceGroupId) ID(subscriptionId string) string {
-	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s", subscriptionId, id.ResourceGroup)
+func (id ResourceGroupId) ID() string {
+	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s", id.SubscriptionId, id.ResourceGroup)
 }

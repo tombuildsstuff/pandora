@@ -42,8 +42,8 @@ func New%[2]sId(%[4]s) %[2]sId {
 	}
 }
 
-func (id %[2]sId) ID(subscriptionId string) string {
-	return fmt.Sprintf("%[6]s", subscriptionId, %[7]s)
+func (id %[2]sId) ID() string {
+	return fmt.Sprintf("%[6]s", %[7]s)
 }`, t.packageName, t.typeName, structFields, arguments, constructorFields, t.resourceIdFormatString, fieldArguments)
 	return &template, nil
 }
@@ -52,10 +52,6 @@ func (id %[2]sId) ID(subscriptionId string) string {
 func (t ResourceIDTemplate) fields(indent string) string {
 	output := make([]string, 0)
 	for _, k := range t.resourceIdSegments {
-		if strings.EqualFold("subscriptionId", k) {
-			continue
-		}
-
 		normalized := utils.NormalizePropertyName(k)
 		formatted := fmt.Sprintf("%s%s\tstring", indent, normalized)
 		output = append(output, formatted)
@@ -68,10 +64,6 @@ func (t ResourceIDTemplate) fields(indent string) string {
 func (t ResourceIDTemplate) arguments() string {
 	args := make([]string, 0)
 	for _, k := range t.resourceIdSegments {
-		if strings.EqualFold("subscriptionId", k) {
-			continue
-		}
-
 		args = append(args, fmt.Sprintf("%s string", k))
 	}
 
@@ -82,10 +74,6 @@ func (t ResourceIDTemplate) constructorFieldAssignment(indent string) string {
 	output := make([]string, 0)
 
 	for _, k := range t.resourceIdSegments {
-		if strings.EqualFold("subscriptionId", k) {
-			continue
-		}
-
 		normalized := utils.NormalizePropertyName(k)
 		formatted := fmt.Sprintf("%s%s: %s", indent, normalized, k)
 		output = append(output, formatted)
@@ -98,10 +86,6 @@ func (t ResourceIDTemplate) fieldArguments(prefix string) string {
 	output := make([]string, 0)
 
 	for _, k := range t.resourceIdSegments {
-		if strings.EqualFold("subscriptionId", k) {
-			continue
-		}
-
 		// e.g. "id.Name"
 		normalized := utils.NormalizePropertyName(k)
 		formatted := fmt.Sprintf("%s%s", prefix, normalized)

@@ -40,14 +40,14 @@ func run(ctx context.Context) error {
 	groupsClient := groups.NewResourceGroupClient(subscriptionId, auth)
 	namespacesClient := namespaces.NewEventHubNamespaceClient(subscriptionId, auth)
 
-	id := groups.NewResourceGroupId(name)
+	id := groups.NewResourceGroupId(subscriptionId, name)
 
 	log.Printf("Creating %q", name)
 	if err := groupsClient.Create(ctx, id, input); err != nil {
 		return fmt.Errorf("creating: %+v", err)
 	}
 
-	log.Printf("Created %q", id.ID(subscriptionId))
+	log.Printf("Created %q", id.ID())
 
 	log.Printf("Retrieving %q", name)
 	group, err := groupsClient.Get(ctx, id)
@@ -77,7 +77,7 @@ func run(ctx context.Context) error {
 
 	// add a nested item
 	namespaceName := fmt.Sprintf("tomdev%d", rInt)
-	namespaceId := namespaces.NewEventHubNamespaceId(id.ResourceGroup, namespaceName)
+	namespaceId := namespaces.NewEventHubNamespaceId(id.SubscriptionId, id.ResourceGroup, namespaceName)
 	ptr := false
 	createNamespaceInput := namespaces.CreateNamespaceInput{
 		Location: input.Location,
