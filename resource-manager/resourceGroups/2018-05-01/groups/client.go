@@ -54,8 +54,8 @@ func (client ResourceGroupClient) Delete(ctx context.Context, id ResourceGroupId
 }
 
 type GetResourceGroupResponse struct {
-	HttpResponse     *http.Response
-	GetResourceGroup *GetResourceGroup
+	HttpResponse  *http.Response
+	ResourceGroup *GetResourceGroup
 }
 
 func (client ResourceGroupClient) Get(ctx context.Context, id ResourceGroupId) (*GetResourceGroupResponse, error) {
@@ -73,8 +73,8 @@ func (client ResourceGroupClient) Get(ctx context.Context, id ResourceGroupId) (
 	}
 
 	result := GetResourceGroupResponse{
-		HttpResponse:     resp,
-		GetResourceGroup: &out,
+		HttpResponse:  resp,
+		ResourceGroup: &out,
 	}
 	return &result, nil
 }

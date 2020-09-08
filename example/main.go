@@ -37,10 +37,10 @@ func run(ctx context.Context) error {
 	}
 
 	auth := sdk.NewClientSecretAuthorizer(clientId, clientSecret, tenantId)
-	groupsClient := groups.NewGroupsClient(subscriptionId, auth)
-	namespacesClient := namespaces.NewNamespacesClient(subscriptionId, auth)
+	groupsClient := groups.NewResourceGroupClient(subscriptionId, auth)
+	namespacesClient := namespaces.NewEventHubNamespaceClient(subscriptionId, auth)
 
-	id := groups.NewGroupsId(name)
+	id := groups.NewResourceGroupId(name)
 
 	log.Printf("Creating %q", name)
 	if err := groupsClient.Create(ctx, id, input); err != nil {
@@ -54,8 +54,8 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("retrieving: %+v", err)
 	}
-	log.Printf("Exists in %q..", group.GetResourceGroup.Location)
-	log.Printf("Value for the Tag 'hello': %q..", group.GetResourceGroup.Tags["hello"])
+	log.Printf("Exists in %q..", group.ResourceGroup.Location)
+	log.Printf("Value for the Tag 'hello': %q..", group.ResourceGroup.Tags["hello"])
 
 	log.Printf("Updating tags..")
 	updateInput := groups.UpdateResourceGroupInput{
@@ -72,12 +72,12 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("retrieving: %+v", err)
 	}
-	log.Printf("Exists in %q..", group.GetResourceGroup.Location)
-	log.Printf("Value for the Tag 'hello': %q..", group.GetResourceGroup.Tags["hello"])
+	log.Printf("Exists in %q..", group.ResourceGroup.Location)
+	log.Printf("Value for the Tag 'hello': %q..", group.ResourceGroup.Tags["hello"])
 
 	// add a nested item
 	namespaceName := fmt.Sprintf("tomdev%d", rInt)
-	namespaceId := namespaces.NewNamespacesId(id.ResourceGroup, namespaceName)
+	namespaceId := namespaces.NewEventHubNamespaceId(id.ResourceGroup, namespaceName)
 	ptr := false
 	createNamespaceInput := namespaces.CreateNamespaceInput{
 		Location: input.Location,
@@ -107,7 +107,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("retrieving namespace: %+v", err)
 	}
 
-	log.Printf("ServiceBus Endpoint is at %q", namespace.GetNamespace.Properties.ServiceBusEndpoint)
+	log.Printf("ServiceBus Endpoint is at %q", namespace.EventHubNamespace.Properties.ServiceBusEndpoint)
 	time.Sleep(10 * time.Second)
 
 	log.Printf("Deleting EH namespace %q", namespaceName)

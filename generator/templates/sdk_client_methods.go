@@ -124,7 +124,7 @@ func (t methodTemplater) get() string {
 	return fmt.Sprintf(`
 type %[2]s%[3]sResponse struct {
 	HttpResponse *http.Response
-	%[4]s    *%[4]s
+	%[3]s    *%[4]s
 }
 
 func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*%[2]s%[3]sResponse, error) {
@@ -143,7 +143,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*%[2]s%[3]sResponse,
 
 	result := %[2]s%[3]sResponse{
 		HttpResponse: resp,
-		%[4]s:    &out,
+		%[3]s:    &out,
 	}
 	return &result, nil
 }

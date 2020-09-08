@@ -51,8 +51,8 @@ func (client EventHubNamespaceClient) Delete(ctx context.Context, id EventHubNam
 }
 
 type GetEventHubNamespaceResponse struct {
-	HttpResponse *http.Response
-	GetNamespace *GetNamespace
+	HttpResponse      *http.Response
+	EventHubNamespace *GetNamespace
 }
 
 func (client EventHubNamespaceClient) Get(ctx context.Context, id EventHubNamespaceId) (*GetEventHubNamespaceResponse, error) {
@@ -70,8 +70,8 @@ func (client EventHubNamespaceClient) Get(ctx context.Context, id EventHubNamesp
 	}
 
 	result := GetEventHubNamespaceResponse{
-		HttpResponse: resp,
-		GetNamespace: &out,
+		HttpResponse:      resp,
+		EventHubNamespace: &out,
 	}
 	return &result, nil
 }
