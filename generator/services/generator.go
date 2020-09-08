@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/tombuildsstuff/pandora/generator/templates"
 	"github.com/tombuildsstuff/pandora/generator/utils"
 )
 
@@ -49,9 +48,9 @@ func (g ResourceManagerGenerator) Generate() error {
 			os.MkdirAll(packageOutputPath, os.ModePerm)
 
 			packageGenerator := packageGenerator{
-				serviceDef: serviceDefinition,
-				packageDef: packageDefinition,
-				outputPath: packageOutputPath,
+				serviceDef:      serviceDefinition,
+				packageDef:      packageDefinition,
+				outputDirectory: outputDirectory,
 			}
 
 			log.Printf("[DEBUG] Generating files..")
@@ -166,163 +165,35 @@ func (g ResourceManagerGenerator) determineApiVersion(versions *SupportedVersion
 }
 
 type packageGenerator struct {
-	serviceDef serviceDefinition
-	packageDef packageDefinition
-	outputPath string
+	serviceDef      serviceDefinition
+	packageDef      packageDefinition
+	outputDirectory string
+	tfOutputPath    string
+}
+
+type generator interface {
+	directory(workingDirectory string) string
+	generate(serviceDef serviceDefinition, packageDef packageDefinition, outputPath string) error
+	name() string
 }
 
 func (p packageGenerator) generate() error {
-	log.Printf("[DEBUG] Generating Client for Operations..")
-	if err := p.generateOperations(fmt.Sprintf("%s/client.go", p.outputPath)); err != nil {
-		return fmt.Errorf("generating client for operations: %+v", err)
+	generators := []generator{
+		sdkGenerator{},
 	}
 
-	log.Printf("[DEBUG] Generating Constants for Operations..")
-	if err := p.generateConstants(fmt.Sprintf("%s/constants.go", p.outputPath)); err != nil {
-		return fmt.Errorf("generating constants for operations: %+v", err)
-	}
+	for _, generator := range generators {
+		log.Printf("[DEBUG] Starting generating %s..", generator.name())
+		directory := generator.directory(p.outputDirectory)
+		os.MkdirAll(directory, os.ModePerm)
 
-	log.Printf("[DEBUG] Generating ID Parsers for Operations..")
-	if err := p.generateIDParsers(fmt.Sprintf("%s/id_parsers.go", p.outputPath)); err != nil {
-		return fmt.Errorf("generating ID parsers for operations: %+v", err)
-	}
-
-	log.Printf("[DEBUG] Generating Models for Operations..")
-	if err := p.generateModels(fmt.Sprintf("%s/models.go", p.outputPath)); err != nil {
-		return fmt.Errorf("generating models for operations: %+v", err)
-	}
-
-	log.Printf("[DEBUG] Generating Model Tests for Operations..")
-	if err := p.generateModelTests(fmt.Sprintf("%s/models_test.go", p.outputPath)); err != nil {
-		return fmt.Errorf("generating model tests for operations: %+v", err)
+		if err := generator.generate(p.serviceDef, p.packageDef, directory); err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] Finished generating for %s..", generator.name())
 	}
 
 	return nil
-}
-
-func (p packageGenerator) generateConstants(filePath string) error {
-	packageName := p.packageDef.packageName
-	constants := make(map[string]templates.ConstantMetaData, 0)
-	for k, v := range p.packageDef.constants {
-		constants[k] = templates.ConstantMetaData{
-			Values:          v.Values,
-			CaseInsensitive: v.CaseInsensitive,
-		}
-	}
-
-	templater := templates.NewConstantsTemplater(packageName, constants)
-	out, err := templater.Build()
-	if err != nil {
-		return fmt.Errorf("building template: %+v", err)
-	}
-
-	// not everything has constants so this file is conditionally output
-	if out == nil {
-		return nil
-	}
-
-	return goFmtAndWriteToFile(filePath, *out)
-}
-
-func (p packageGenerator) generateIDParsers(filePath string) error {
-	packageName := p.packageDef.packageName
-	typeName := p.packageDef.typeName
-	resourceId := p.packageDef.resourceId
-
-	templater := templates.NewResourceIDTemplate(packageName, typeName, resourceId.Format, resourceId.Segments)
-	out, err := templater.Build()
-	if err != nil {
-		return fmt.Errorf("building template: %+v", err)
-	}
-
-	return goFmtAndWriteToFile(filePath, *out)
-}
-
-func (p packageGenerator) generateModels(filePath string) error {
-	models, err := p.packageDef.buildModelDefinitions()
-	if err != nil {
-		return fmt.Errorf("building model definitions: %+v", err)
-	}
-
-	templater := templates.NewModelsTemplater(p.packageDef.packageName, *models)
-	out, err := templater.Build()
-	if err != nil {
-		return fmt.Errorf("generating models: %+v", err)
-	}
-
-	return goFmtAndWriteToFile(filePath, *out)
-}
-
-func (p packageGenerator) generateModelTests(filePath string) error {
-	models, err := p.packageDef.buildModelDefinitions()
-	if err != nil {
-		return fmt.Errorf("building model definitions: %+v", err)
-	}
-
-	templater := templates.NewModelTestsTemplater(p.packageDef.packageName, *models)
-	out, err := templater.Build()
-	if err != nil {
-		return fmt.Errorf("generating models tests: %+v", err)
-	}
-
-	// model tests are only generated when there's a validation function
-	// to ensure the model complies with the interface, so check before
-	// writing an empty file out
-	if out == nil {
-		return nil
-	}
-
-	return goFmtAndWriteToFile(filePath, *out)
-}
-
-func (p packageGenerator) generateOperations(filePath string) error {
-	operations := make([]templates.ClientOperation, 0)
-	for name, operation := range p.packageDef.operations {
-		clientOperation := templates.ClientOperation{
-			Name:                 name,
-			Method:               operation.Method,
-			LongRunningOperation: operation.LongRunning,
-			ExpectedStatusCodes:  operation.ExpectedStatusCodes,
-		}
-
-		if operation.RequestObject != nil {
-			ref, err := parseReference(*operation.RequestObject)
-			if err != nil {
-				return fmt.Errorf("parsing reference %q: %+v", *operation.RequestObject, err)
-			}
-
-			clientOperation.RequestObjectName = &ref.name
-		}
-
-		if operation.ResponseObject != nil {
-			ref, err := parseReference(*operation.ResponseObject)
-			if err != nil {
-				return fmt.Errorf("parsing reference %q: %+v", *operation.ResponseObject, err)
-			}
-
-			clientOperation.ResponseObjectName = &ref.name
-		}
-
-		operations = append(operations, clientOperation)
-	}
-
-	apiVersion := p.serviceDef.apiVersion
-	packageName := p.packageDef.packageName
-	typeName := p.packageDef.typeName
-	resourceProvider := p.serviceDef.resourceProvider
-
-	// this is resource manager so resourceProvider is guaranteed
-	if resourceProvider == nil {
-		return fmt.Errorf("resourceProvider was nil for a Resource Manager Operation")
-	}
-
-	templater := templates.NewResourceManagerClientTemplater(packageName, typeName, apiVersion, *resourceProvider, operations)
-	output, err := templater.Build()
-	if err != nil {
-		return fmt.Errorf("templating: %+v", err)
-	}
-
-	return goFmtAndWriteToFile(filePath, *output)
 }
 
 func goFmtAndWriteToFile(filePath, fileContents string) error {
