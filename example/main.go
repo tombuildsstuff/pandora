@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/tombuildsstuff/pandora/resource-manager/eventhubs/2018-01-01-preview/namespaces"
-	"github.com/tombuildsstuff/pandora/resource-manager/resources/2018-05-01/resourcegroups"
+	"github.com/tombuildsstuff/pandora/resource-manager/resourceGroups/2018-05-01/groups"
 	"github.com/tombuildsstuff/pandora/sdk"
 )
 
@@ -25,9 +25,9 @@ func run(ctx context.Context) error {
 	tenantId := os.Getenv("ARM_TENANT_ID")
 	rInt := time.Now().Unix()
 	name := fmt.Sprintf("tom-pandora-%d", rInt)
-	input := resourcegroups.CreateResourceGroupInput{
+	input := groups.CreateResourceGroupInput{
 		Location: "West Europe",
-		Tags: map[string]string{
+		Tags: &map[string]string{
 			"hello": "world",
 		},
 	}
@@ -37,10 +37,10 @@ func run(ctx context.Context) error {
 	}
 
 	auth := sdk.NewClientSecretAuthorizer(clientId, clientSecret, tenantId)
-	groupsClient := resourcegroups.NewClient(subscriptionId, auth)
+	groupsClient := groups.NewGroupsClient(subscriptionId, auth)
 	namespacesClient := namespaces.NewNamespacesClient(subscriptionId, auth)
 
-	id := resourcegroups.NewResourceGroupID(name)
+	id := groups.NewGroupsId(name)
 
 	log.Printf("Creating %q", name)
 	if err := groupsClient.Create(ctx, id, input); err != nil {
@@ -54,11 +54,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("retrieving: %+v", err)
 	}
-	log.Printf("Exists in %q..", group.ResourceGroup.Location)
-	log.Printf("Value for the Tag 'hello': %q..", group.ResourceGroup.Tags["hello"])
+	log.Printf("Exists in %q..", group.GetResourceGroup.Location)
+	log.Printf("Value for the Tag 'hello': %q..", group.GetResourceGroup.Tags["hello"])
 
 	log.Printf("Updating tags..")
-	updateInput := resourcegroups.UpdateResourceGroupInput{
+	updateInput := groups.UpdateResourceGroupInput{
 		Tags: &map[string]string{
 			"hello": "pandora",
 		},
@@ -72,12 +72,12 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("retrieving: %+v", err)
 	}
-	log.Printf("Exists in %q..", group.ResourceGroup.Location)
-	log.Printf("Value for the Tag 'hello': %q..", group.ResourceGroup.Tags["hello"])
+	log.Printf("Exists in %q..", group.GetResourceGroup.Location)
+	log.Printf("Value for the Tag 'hello': %q..", group.GetResourceGroup.Tags["hello"])
 
 	// add a nested item
 	namespaceName := fmt.Sprintf("tomdev%d", rInt)
-	namespaceId := namespaces.NewNamespacesId(id.Name, namespaceName)
+	namespaceId := namespaces.NewNamespacesId(id.ResourceGroup, namespaceName)
 	ptr := false
 	createNamespaceInput := namespaces.CreateNamespaceInput{
 		Location: input.Location,

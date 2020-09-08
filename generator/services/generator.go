@@ -211,6 +211,11 @@ func (p packageGenerator) generateConstants(filePath string) error {
 		return fmt.Errorf("building template: %+v", err)
 	}
 
+	// not everything has constants so this file is conditionally output
+	if out == nil {
+		return nil
+	}
+
 	return goFmtAndWriteToFile(filePath, *out)
 }
 

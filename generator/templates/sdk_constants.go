@@ -29,6 +29,7 @@ func (t ConstantsTemplater) Build() (*string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("building constants: %+v", err)
 	}
+
 	template := fmt.Sprintf(`package %[1]s
 
 %[2]s
@@ -56,6 +57,11 @@ var (
 		//}
 
 		output = append(output, code)
+	}
+
+	// not everything has constants so these are conditionally output
+	if len(output) == 0 {
+		return nil, nil
 	}
 
 	result := strings.Join(output, "\n\n")

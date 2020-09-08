@@ -1,4 +1,4 @@
-package resourcegroups
+package groups
 
 import "github.com/tombuildsstuff/pandora/sdk"
 

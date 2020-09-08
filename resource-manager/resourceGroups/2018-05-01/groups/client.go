@@ -1,4 +1,4 @@
-package resourcegroups
+package groups
 
 import (
 	"context"
@@ -9,30 +9,29 @@ import (
 	"github.com/tombuildsstuff/pandora/sdk/endpoints"
 )
 
-type Client struct {
+type GroupsClient struct {
 	apiVersion     string
 	baseClient     sdk.BaseClient
-	subscriptionId string
+	subscriptionId string // TODO: making this Optional?
 }
 
-func NewClient(subscriptionId string, authorizer sdk.Authorizer) Client {
-	return NewClientWithBaseURI(endpoints.DefaultManagementEndpoint, subscriptionId, authorizer)
+func NewGroupsClient(subscriptionId string, authorizer sdk.Authorizer) GroupsClient {
+	return NewGroupsClientWithBaseURI(endpoints.DefaultManagementEndpoint, subscriptionId, authorizer)
 }
 
-func NewClientWithBaseURI(endpoint string, subscriptionId string, authorizer sdk.Authorizer) Client {
-	return Client{
+func NewGroupsClientWithBaseURI(endpoint string, subscriptionId string, authorizer sdk.Authorizer) GroupsClient {
+	return GroupsClient{
 		apiVersion:     "2018-05-01",
 		baseClient:     sdk.DefaultBaseClient(endpoint, authorizer),
 		subscriptionId: subscriptionId,
 	}
 }
 
-func (client Client) Create(ctx context.Context, id ResourceGroupID, input CreateResourceGroupInput) error {
+func (client GroupsClient) Create(ctx context.Context, id GroupsId, input CreateResourceGroupInput) error {
 	req := sdk.PutHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
-			http.StatusOK,      // already exists
-			http.StatusCreated, // new
+			http.StatusOK, // TODO: unknown
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
@@ -43,10 +42,10 @@ func (client Client) Create(ctx context.Context, id ResourceGroupID, input Creat
 	return nil
 }
 
-func (client Client) Delete(ctx context.Context, id ResourceGroupID) (sdk.Poller, error) {
+func (client GroupsClient) Delete(ctx context.Context, id GroupsId) (sdk.Poller, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
-			http.StatusAccepted, // delete accepted
+			http.StatusAccepted, // deletion accepted,
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
@@ -54,10 +53,15 @@ func (client Client) Delete(ctx context.Context, id ResourceGroupID) (sdk.Poller
 	return client.baseClient.DeleteThenPoll(ctx, req)
 }
 
-func (client Client) Get(ctx context.Context, id ResourceGroupID) (*GetResourceGroupResponse, error) {
+type GetGroupsResponse struct {
+	HttpResponse     *http.Response
+	GetResourceGroup *GetResourceGroup
+}
+
+func (client GroupsClient) Get(ctx context.Context, id GroupsId) (*GetGroupsResponse, error) {
 	req := sdk.GetHttpRequestInput{
 		ExpectedStatusCodes: []int{
-			http.StatusOK, // Exists
+			http.StatusOK, // ok
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
@@ -68,28 +72,29 @@ func (client Client) Get(ctx context.Context, id ResourceGroupID) (*GetResourceG
 		return nil, fmt.Errorf("sending Request: %+v", err)
 	}
 
-	result := GetResourceGroupResponse{
-		HttpResponse:  resp,
-		ResourceGroup: &out,
+	result := GetGroupsResponse{
+		HttpResponse:     resp,
+		GetResourceGroup: &out,
 	}
 	return &result, nil
 }
 
-func (client Client) Update(ctx context.Context, id ResourceGroupID, input UpdateResourceGroupInput) error {
+func (client GroupsClient) Update(ctx context.Context, id GroupsId, input UpdateResourceGroupInput) error {
 	req := sdk.PatchHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
-			http.StatusOK, // already exists
+			http.StatusOK, // TODO: unknown
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
+
 	if _, err := client.baseClient.PatchJson(ctx, req); err != nil {
 		return fmt.Errorf("sending Request: %+v", err)
 	}
 	return nil
 }
 
-func (client Client) MetaData() sdk.ClientMetaData {
+func (client GroupsClient) MetaData() sdk.ClientMetaData {
 	resourceProvider := "Microsoft.Resources"
 	return sdk.ClientMetaData{
 		ResourceProvider: &resourceProvider,
