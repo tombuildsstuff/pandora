@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/tombuildsstuff/pandora/resource-manager/eventhubs/2018-01-01-preview/eventhub"
+	"github.com/tombuildsstuff/pandora/resource-manager/eventhubs/2018-01-01-preview/namespaces"
 	"github.com/tombuildsstuff/pandora/resource-manager/resources/2018-05-01/resourcegroups"
 	"github.com/tombuildsstuff/pandora/sdk"
 )
@@ -38,7 +38,7 @@ func run(ctx context.Context) error {
 
 	auth := sdk.NewClientSecretAuthorizer(clientId, clientSecret, tenantId)
 	groupsClient := resourcegroups.NewClient(subscriptionId, auth)
-	namespacesClient := eventhub.NewNamespacesClient(subscriptionId, auth)
+	namespacesClient := namespaces.NewNamespacesClient(subscriptionId, auth)
 
 	id := resourcegroups.NewResourceGroupID(name)
 
@@ -77,18 +77,19 @@ func run(ctx context.Context) error {
 
 	// add a nested item
 	namespaceName := fmt.Sprintf("tomdev%d", rInt)
-	namespaceId := eventhub.NewNamespaceID(id.Name, namespaceName)
-	createNamespaceInput := eventhub.CreateNamespaceInput{
+	namespaceId := namespaces.NewNamespacesId(id.Name, namespaceName)
+	ptr := false
+	createNamespaceInput := namespaces.CreateNamespaceInput{
 		Location: input.Location,
-		Sku: eventhub.Sku{
-			Name: eventhub.Basic,
-			Tier: eventhub.Basic,
+		Sku: namespaces.Sku{
+			Name: namespaces.Basic,
+			Tier: namespaces.Basic,
 		},
-		Properties: eventhub.CreateNamespaceProperties{
-			IsAutoInflateEnabled: false,
-			ZoneRedundant:        false,
+		Properties: namespaces.CreateNamespaceProperties{
+			IsAutoInflateEnabled: &ptr,
+			ZoneRedundant:        &ptr,
 		},
-		Tags: map[string]string{},
+		Tags: &map[string]string{},
 	}
 	log.Printf("Adding a EventHub Namespace %q", namespaceName)
 	poller, err := namespacesClient.Create(ctx, namespaceId, createNamespaceInput)
@@ -106,7 +107,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("retrieving namespace: %+v", err)
 	}
 
-	log.Printf("ServiceBus Endpoint is at %q", namespace.Namespace.Properties.ServiceBusEndpoint)
+	log.Printf("ServiceBus Endpoint is at %q", namespace.GetNamespace.Properties.ServiceBusEndpoint)
 	time.Sleep(10 * time.Second)
 
 	log.Printf("Deleting EH namespace %q", namespaceName)

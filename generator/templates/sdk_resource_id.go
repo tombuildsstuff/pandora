@@ -17,7 +17,7 @@ type ResourceIDTemplate struct {
 func NewResourceIDTemplate(packageName, typeName, resourceIdFormat string, resourceIdSegments []string) ResourceIDTemplate {
 	return ResourceIDTemplate{
 		packageName:            packageName,
-		typeName:               typeName,
+		typeName:               strings.Title(typeName),
 		resourceIdFormatString: resourceIdFormat,
 		resourceIdSegments:     resourceIdSegments,
 	}
@@ -32,17 +32,17 @@ func (t ResourceIDTemplate) Build() (*string, error) {
 
 import "fmt"
 
-type %[2]sID struct {
+type %[2]sId struct {
 %[3]s
 }
 
-func New%[2]sID(%[4]s) %[2]sID {
-	return %[2]sID{
+func New%[2]sId(%[4]s) %[2]sId {
+	return %[2]sId{
 %[5]s,
 	}
 }
 
-func (id %[2]sID) ID(subscriptionId string) string {
+func (id %[2]sId) ID(subscriptionId string) string {
 	return fmt.Sprintf("%[6]s", subscriptionId, %[7]s)
 }`, t.packageName, t.typeName, structFields, arguments, constructorFields, t.resourceIdFormatString, fieldArguments)
 	return &template, nil

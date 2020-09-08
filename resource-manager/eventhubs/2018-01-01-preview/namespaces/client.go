@@ -1,4 +1,4 @@
-package eventhub
+package namespaces
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 type NamespacesClient struct {
 	apiVersion     string
 	baseClient     sdk.BaseClient
-	subscriptionId string
+	subscriptionId string // TODO: making this Optional?
 }
 
 func NewNamespacesClient(subscriptionId string, authorizer sdk.Authorizer) NamespacesClient {
@@ -27,23 +27,22 @@ func NewNamespacesClientWithBaseURI(endpoint string, subscriptionId string, auth
 	}
 }
 
-func (client NamespacesClient) Create(ctx context.Context, id NamespaceID, input CreateNamespaceInput) (sdk.Poller, error) {
-	uri := sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion)
+func (client NamespacesClient) Create(ctx context.Context, id NamespacesId, input CreateNamespaceInput) (sdk.Poller, error) {
 	req := sdk.PutHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
-			http.StatusOK, // new
+			http.StatusOK, // TODO: unknown,
 		},
-		Uri: uri,
+		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 
 	return client.baseClient.PutJsonThenPoll(ctx, req)
 }
 
-func (client NamespacesClient) Delete(ctx context.Context, id NamespaceID) (sdk.Poller, error) {
+func (client NamespacesClient) Delete(ctx context.Context, id NamespacesId) (sdk.Poller, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
-			http.StatusAccepted, // delete accepted
+			http.StatusAccepted, // deletion accepted,
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
@@ -51,10 +50,15 @@ func (client NamespacesClient) Delete(ctx context.Context, id NamespaceID) (sdk.
 	return client.baseClient.DeleteThenPoll(ctx, req)
 }
 
-func (client NamespacesClient) Get(ctx context.Context, id NamespaceID) (*GetNamespaceResponse, error) {
+type GetNamespacesResponse struct {
+	HttpResponse *http.Response
+	GetNamespace *GetNamespace
+}
+
+func (client NamespacesClient) Get(ctx context.Context, id NamespacesId) (*GetNamespacesResponse, error) {
 	req := sdk.GetHttpRequestInput{
 		ExpectedStatusCodes: []int{
-			http.StatusOK, // Exists
+			http.StatusOK, // ok
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
@@ -65,11 +69,26 @@ func (client NamespacesClient) Get(ctx context.Context, id NamespaceID) (*GetNam
 		return nil, fmt.Errorf("sending Request: %+v", err)
 	}
 
-	result := GetNamespaceResponse{
+	result := GetNamespacesResponse{
 		HttpResponse: resp,
-		Namespace:    &out,
+		GetNamespace: &out,
 	}
 	return &result, nil
+}
+
+func (client NamespacesClient) Update(ctx context.Context, id NamespacesId, input PatchNamespaceInput) error {
+	req := sdk.PatchHttpRequestInput{
+		Body: input,
+		ExpectedStatusCodes: []int{
+			http.StatusOK, // TODO: unknown
+		},
+		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+	}
+
+	if _, err := client.baseClient.PatchJson(ctx, req); err != nil {
+		return fmt.Errorf("sending Request: %+v", err)
+	}
+	return nil
 }
 
 func (client NamespacesClient) MetaData() sdk.ClientMetaData {

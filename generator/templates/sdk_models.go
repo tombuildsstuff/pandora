@@ -2,135 +2,168 @@ package templates
 
 import (
 	"fmt"
-	"sort"
+	"log"
 	"strings"
-
-	"github.com/tombuildsstuff/pandora/generator/models"
 )
 
 type ModelsTemplater struct {
 	packageName string
-	typeName    string
-	operations  []models.OperationMetaData
+	models      []ModelDefinition
 }
 
-func NewModelsTemplater(packageName, typeName string, operations []models.OperationMetaData) ModelsTemplater {
+func NewModelsTemplater(packageName string, models []ModelDefinition) ModelsTemplater {
 	return ModelsTemplater{
 		packageName: packageName,
-		typeName:    typeName,
-		operations:  operations,
+		models:      models,
 	}
 }
 
-func (t ModelsTemplater) Build() (*string, error) {
-	models, err := t.models()
-	if err != nil {
-		return nil, fmt.Errorf("building models: %+v", err)
-	}
-	template := fmt.Sprintf(`package %[1]s
+type ModelDefinition struct {
+	Name     string
+	JsonName string
+	Fields   []PropertyDefinition
+}
 
-import (
-	"fmt"
-	"net/http"
+type PropertyDefinition struct {
+	Name       string
+	JsonName   string
+	Type       string
+	Required   bool
+	Optional   bool
+	Validation *PropertyValidationDefinition
+}
+
+type PropertyValidationDefinition struct {
+	Type   PropertyValidationType
+	Values *[]interface{}
+}
+
+type PropertyValidationType string
+
+var (
+	Range PropertyValidationType = "range"
 )
 
-%[2]s`, t.packageName, *models)
-	return &template, nil
+func (g ModelsTemplater) Build() (*string, error) {
+	// TODO: sort the fields then parse them in below
+
+	models := make([]string, 0)
+	for _, model := range g.models {
+		log.Printf("[DEBUG] Generating %q..", model.Name)
+		code, err := g.codeForModel(model)
+		if err != nil {
+			return nil, fmt.Errorf("generating model for %q: %+v", model.Name, err)
+		}
+
+		models = append(models, *code)
+	}
+
+	out := fmt.Sprintf(`package %s
+
+import "github.com/hashicorp/go-multierror"
+
+%s
+`, g.packageName, strings.Join(models, "\n\n"))
+	return &out, nil
 }
 
-func (t ModelsTemplater) models() (*string, error) {
-	// first collate all of the types from all operations
-	// then sort them and output them
-	types := make(map[string]string, 0)
+func (g ModelsTemplater) codeForModel(definition ModelDefinition) (*string, error) {
+	output := g.structForModel(definition)
 
-	for _, operation := range t.operations {
-		newTypes, err := t.typesForOperation(operation, t.typeName)
-		if err != nil {
-			return nil, fmt.Errorf("building types for %q (method %q)", operation.Name, operation.Method)
+	validation, err := definition.validationCode()
+	if err != nil {
+		return nil, err
+	}
+
+	if validation != nil {
+		output += fmt.Sprintf("\n\n%s", *validation)
+	}
+
+	return &output, nil
+}
+
+func (g ModelsTemplater) structForModel(definition ModelDefinition) string {
+	fields := make([]string, 0)
+
+	for _, v := range definition.Fields {
+		jsonTag := v.JsonName
+		if v.Optional {
+			jsonTag = fmt.Sprintf("%s,omitempty", v.JsonName)
 		}
-		for k, v := range *newTypes {
-			// ensure no duplicates, which should be impossible but defensive against bugs
-			if _, existing := types[k]; existing {
-				return nil, fmt.Errorf("invalid duplicate type for %q", k)
+
+		format := "\t%s %s `json:\"%s\"`" // e.g. Foo string `json:"foo"`
+		fields = append(fields, fmt.Sprintf(format, v.Name, v.Type, jsonTag))
+	}
+
+	return fmt.Sprintf(`type %s struct {
+%s
+}
+`, definition.Name, strings.Join(fields, "\n"))
+}
+
+func (definition ModelDefinition) validationCode() (*string, error) {
+	fields := make([]string, 0)
+	for _, v := range definition.Fields {
+		validationCode, err := v.validationCode()
+		if err != nil {
+			return nil, fmt.Errorf("generating validation for %q: %+v", v.Name, err)
+		}
+		if validationCode != nil {
+			fields = append(fields, *validationCode)
+		}
+	}
+	if len(fields) == 0 {
+		return nil, nil
+	}
+
+	formattedFields := make([]string, 0)
+	for _, field := range fields {
+		formattedFields = append(formattedFields, fmt.Sprintf("\t%s", field))
+	}
+
+	out := fmt.Sprintf(`func (m %s) Validate() error {
+  var result error
+
+%s
+
+  return result
+}`, definition.Name, strings.Join(formattedFields, "\n\n"))
+	return &out, nil
+}
+
+func (property PropertyDefinition) validationCode() (*string, error) {
+	if !property.Required && !property.Optional && property.Validation == nil {
+		return nil, nil
+	}
+
+	output := make([]string, 0)
+
+	if property.Required && strings.EqualFold(property.Type, "String") {
+		output = append(output, fmt.Sprintf(`if m.%[1]s == "" {
+	result = multierror.Append(result, fmt.Errorf("%[1]s cannot be empty"))
+}
+`, property.Name))
+	}
+
+	// TODO: if there's nested objects, do they have validation functions?
+
+	if property.Validation != nil {
+		switch property.Validation.Type {
+		case Range:
+			{
+				// TODO: implement me
+				output = append(output, fmt.Sprintf(`// TODO: range validation`))
 			}
 
-			types[k] = v
+		default:
+			return nil, fmt.Errorf("unimplemented validation type %q!", property.Validation.Type)
 		}
 	}
 
-	sortedKeys := make([]string, 0)
-	for k, _ := range types {
-		sortedKeys = append(sortedKeys, k)
-	}
-	sort.Strings(sortedKeys)
-
-	sortedStructs := make([]string, 0)
-	for _, key := range sortedKeys {
-		value := types[key]
-		sortedStructs = append(sortedStructs, value)
+	if len(output) == 0 {
+		return nil, nil
 	}
 
-	result := strings.Join(sortedStructs, "\n\n")
+	result := strings.Join(output, "\n\n")
 	return &result, nil
-}
-
-func (t ModelsTemplater) typesForOperation(input models.OperationMetaData, typeName string) (*map[string]string, error) {
-	method := strings.ToUpper(input.Method)
-	if method == "DELETE" {
-		// TODO: some operations do have some querystrings however
-		return &map[string]string{}, nil
-	}
-
-	// TODO: validation methods
-
-	if method == "GET" {
-		result := t.getOperationTypes(input, typeName)
-		return &result, nil
-	}
-
-	if method == "PATCH" {
-		result := t.patchOperationTypes(input, typeName)
-		return &result, nil
-	}
-
-	if method == "PUT" {
-		result := t.putOperationTypes(input, typeName)
-		return &result, nil
-	}
-
-	// TODO: temp
-	return nil, fmt.Errorf("unsupported method %q", input.Method)
-}
-
-func (t ModelsTemplater) getOperationTypes(input models.OperationMetaData, typeName string) map[string]string {
-	structName := fmt.Sprintf("%s%s", input.Name, typeName)
-	wrapperStructName := fmt.Sprintf("%sResponse", structName)
-	return map[string]string{
-		structName: fmt.Sprintf(`type %s struct {
-	// TODO: implementation
-}`, structName),
-		wrapperStructName: fmt.Sprintf(`type %[1]s struct {
-	HttpResponse  *http.Response
-	ResourceGroup *%[2]s
-}`, wrapperStructName, structName),
-	}
-}
-
-func (t ModelsTemplater) patchOperationTypes(input models.OperationMetaData, typeName string) map[string]string {
-	structName := fmt.Sprintf("%s%sInput", input.Name, typeName)
-	return map[string]string{
-		structName: fmt.Sprintf(`type %s struct {
-	// TODO: implementation
-	// TODO: notably here all fields need to be 'omitempty'
-}`, structName),
-	}
-}
-
-func (t ModelsTemplater) putOperationTypes(input models.OperationMetaData, typeName string) map[string]string {
-	structName := fmt.Sprintf("%s%sInput", input.Name, typeName)
-	return map[string]string{
-		structName: fmt.Sprintf(`type %s struct {
-	// TODO: implementation
-}`, structName),
-	}
 }

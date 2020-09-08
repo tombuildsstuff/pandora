@@ -22,6 +22,10 @@ func (f GolangCodeFormatter) Format(input string) (*string, error) {
 		return nil, fmt.Errorf("running gofmt on %q: %+v", filePath, err)
 	}
 
+	if err := f.runGoImports(filePath); err != nil {
+		return nil, fmt.Errorf("running goimports on %q: %+v", filePath, err)
+	}
+
 	contents, err := f.readFileContents(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("reading contents from %q: %+v", filePath, err)
@@ -37,6 +41,14 @@ func (f GolangCodeFormatter) randomFilePath() string {
 
 func (f GolangCodeFormatter) runGoFmt(filePath string) error {
 	cmd := exec.Command("gofmt", "-w", filePath)
+	// intentionally not using these errors since the exit codes are kinda uninteresting
+	cmd.Start()
+	cmd.Wait()
+	return nil
+}
+
+func (f GolangCodeFormatter) runGoImports(filePath string) error {
+	cmd := exec.Command("goimports", "-w", filePath)
 	// intentionally not using these errors since the exit codes are kinda uninteresting
 	cmd.Start()
 	cmd.Wait()

@@ -6,19 +6,22 @@ import (
 )
 
 type methodTemplater struct {
-	typeName             string
-	name                 string
-	method               string
-	longRunningOperation bool
-	expectedStatusCodes  []int
+	clientName string
+	typeName   string
+	operation  ClientOperation
 }
 
 func (t methodTemplater) Build() (*string, error) {
 	var result string
-	switch strings.ToUpper(t.method) {
+	switch strings.ToUpper(t.operation.Method) {
 	case "DELETE":
 		{
-			if t.longRunningOperation {
+			if t.operation.RequestObjectName != nil {
+				// TODO: maybe implement this
+				return nil, fmt.Errorf("`DELETE` operations do not support Request objects at this time")
+			}
+
+			if t.operation.LongRunningOperation {
 				result = t.deleteLongRunningOperation()
 				break
 			}
@@ -29,8 +32,17 @@ func (t methodTemplater) Build() (*string, error) {
 
 	case "GET":
 		{
-			if t.longRunningOperation {
+			if t.operation.LongRunningOperation {
 				return nil, fmt.Errorf("`GET` operations cannot be long-running")
+			}
+
+			if t.operation.RequestObjectName != nil {
+				// TODO: implement support for this
+				return nil, fmt.Errorf("`GET` operations do not support Request objects at this time")
+			}
+
+			if t.operation.ResponseObjectName == nil {
+				return nil, fmt.Errorf("`GET` operations must have a Response object")
 			}
 
 			result = t.get()
@@ -39,7 +51,11 @@ func (t methodTemplater) Build() (*string, error) {
 
 	case "PATCH":
 		{
-			if t.longRunningOperation {
+			if t.operation.RequestObjectName == nil {
+				return nil, fmt.Errorf("`PATCH` operations must have a Request Object")
+			}
+
+			if t.operation.LongRunningOperation {
 				result = t.patchLongRunningOperation()
 				break
 			}
@@ -50,7 +66,11 @@ func (t methodTemplater) Build() (*string, error) {
 
 	case "PUT":
 		{
-			if t.longRunningOperation {
+			if t.operation.RequestObjectName == nil {
+				return nil, fmt.Errorf("`PUT` operations must have a Request Object")
+			}
+
+			if t.operation.LongRunningOperation {
 				result = t.putLongRunningOperation()
 				break
 			}
@@ -60,7 +80,7 @@ func (t methodTemplater) Build() (*string, error) {
 		}
 
 	default:
-		return nil, fmt.Errorf("unsupported method type %q..", t.method)
+		return nil, fmt.Errorf("unsupported method type %q..", t.operation.Method)
 	}
 
 	result = strings.TrimSpace(result)
@@ -70,69 +90,74 @@ func (t methodTemplater) Build() (*string, error) {
 func (t methodTemplater) delete() string {
 	statusCodes := t.statusCodes("\t\t\t")
 	return fmt.Sprintf(`
-func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID) (*http.Response, error) {
+func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*http.Response, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
-%[3]s
+%[4]s
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 	
 	return client.baseClient.Delete(ctx, req);
 }
-`, t.typeName, t.name, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, statusCodes)
 }
 
 func (t methodTemplater) deleteLongRunningOperation() string {
 	statusCodes := t.statusCodes("\t\t\t")
 	return fmt.Sprintf(`
-func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID) (sdk.Poller, error) {
+func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (sdk.Poller, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
-%[3]s,
+%[4]s,
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 
 	return client.baseClient.DeleteThenPoll(ctx, req)
 }
-`, t.typeName, t.name, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, statusCodes)
 }
 
 func (t methodTemplater) get() string {
 	statusCodes := t.statusCodes("\t\t\t")
 	return fmt.Sprintf(`
-func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID) (*%[2]s%[1]sResponse, error) {
+type %[2]s%[3]sResponse struct {
+	HttpResponse *http.Response
+	%[4]s    *%[4]s
+}
+
+func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*%[2]s%[3]sResponse, error) {
 	req := sdk.GetHttpRequestInput{
 		ExpectedStatusCodes: []int{
-%[3]s,
+%[5]s
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 
-	var out %[2]s%[1]s
+	var out %[4]s
 	resp, err := client.baseClient.GetJson(ctx, req, &out)
 	if err != nil {
 		return nil, fmt.Errorf("sending Request: %%+v", err)
 	}
 
-	result := %[2]s%[1]sResponse{
+	result := %[2]s%[3]sResponse{
 		HttpResponse: resp,
-		%[1]s:    &out,
+		%[4]s:    &out,
 	}
 	return &result, nil
 }
-`, t.typeName, t.name, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.ResponseObjectName, statusCodes)
 }
 
 func (t methodTemplater) patch() string {
 	statusCodes := t.statusCodes("\t\t\t")
 	return fmt.Sprintf(`
-func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID, input %[2]s%[1]sInput) error {
+func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 	req := sdk.PatchHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
-%[3]s
+%[5]s
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
@@ -142,34 +167,34 @@ func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID, input %[2]s%[1
 	}
 	return nil
 }
-`, t.typeName, t.name, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
 }
 
 func (t methodTemplater) patchLongRunningOperation() string {
 	statusCodes := t.statusCodes("\t\t\t")
 	return fmt.Sprintf(`
-func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID, input %[2]s%[1]sInput) (sdk.Poller, error) {
+func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Poller, error) {
 	req := sdk.Patch%[1]sInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
-%[3]s,
+%[5]s,
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 
 	return client.baseClient.PatchJsonThenPoll(ctx, req)
 }
-`, t.typeName, t.name, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
 }
 
 func (t methodTemplater) put() string {
 	statusCodes := t.statusCodes("\t\t\t")
 	return fmt.Sprintf(`
-func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID, input %[2]s%[1]sInput) error {
+func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 	req := sdk.PutHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
-%[3]s
+%[5]s
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
@@ -179,32 +204,32 @@ func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID, input %[2]s%[1
 	}
 	return nil
 }
-`, t.typeName, t.name, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
 }
 
 func (t methodTemplater) putLongRunningOperation() string {
 	statusCodes := t.statusCodes("\t\t\t")
 	return fmt.Sprintf(`
-func (client %[1]ssClient) %[2]s(ctx context.Context, id %[1]sID, input %[2]s%[1]sInput) (sdk.Poller, error) {
-	req := sdk.Put%[1]sInput{
+func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Poller, error) {
+	req := sdk.PutHttpRequestInput{
 		Body: input,
 		ExpectedStatusCodes: []int{
-%[3]s,
+%[5]s,
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
 	}
 
 	return client.baseClient.PutJsonThenPoll(ctx, req)
 }
-`, t.typeName, t.name, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
 }
 
 func (t methodTemplater) statusCodes(indentation string) string {
 	output := make([]string, 0)
 
-	for _, statusCode := range t.expectedStatusCodes {
+	for _, statusCode := range t.operation.ExpectedStatusCodes {
 		alias := golangConstantForStatusCode(statusCode)
-		description := descriptionForStatusCodeForMethod(statusCode, t.method, t.longRunningOperation)
+		description := descriptionForStatusCodeForMethod(statusCode, t.operation.Method, t.operation.LongRunningOperation)
 		formatted := fmt.Sprintf("%s%s, // %s", indentation, alias, description)
 		output = append(output, formatted)
 	}
