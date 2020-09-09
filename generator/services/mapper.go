@@ -22,7 +22,7 @@ func (pd packageDefinition) buildModelDefinitions() (*[]templates.ModelDefinitio
 			fieldName := strings.Title(propertyName)
 			result := templates.PropertyDefinition{
 				Name:     fieldName,
-				JsonName: propertyName,
+				JsonName: property.JsonName,
 				Type:     *propType,
 				Required: property.Required,
 				Optional: property.Optional,
@@ -58,35 +58,34 @@ func (pd packageDefinition) buildModelDefinitions() (*[]templates.ModelDefinitio
 }
 
 func (pd packageDefinition) determineTypeForProperty(def PropertyDefinition) (*string, error) {
-	if def.Type == Constant {
-		if def.ConstantReference == nil {
-			return nil, fmt.Errorf("constant without a reference")
+	if def.Type == List {
+		if def.ListElementType == nil {
+			return nil, fmt.Errorf("`listElementType` cannot be nil when `propertyType` is a `List`")
 		}
 
-		ref, err := parseReference(*def.ConstantReference)
+		innerType, err := pd.determineTypeForPropertyInternal(*def.ListElementType, def.ConstantReference, def.ModelReference)
 		if err != nil {
-			return nil, fmt.Errorf("parsing reference %q", *def.ConstantReference)
+			return nil, fmt.Errorf("retrieving `listElementType`: %+v", err)
 		}
 
-		return &ref.name, nil
+		out := fmt.Sprintf("[]%s", *innerType)
+		return &out, nil
 	}
 
-	// TODO: support for Lists and Sets of Objects
-	if def.Type == Object {
-		if def.ModelReference == nil {
-			return nil, fmt.Errorf("model without a reference")
-		}
+	return pd.determineTypeForPropertyInternal(def.Type, def.ConstantReference, def.ModelReference)
+}
 
-		ref, err := parseReference(*def.ModelReference)
-		if err != nil {
-			return nil, fmt.Errorf("parsing reference %q", *def.ModelReference)
-		}
-
-		return &ref.name, nil
+func (pd packageDefinition) determineTypeForPropertyInternal(propertyType PropertyType, constantReference, modelReference *string) (*string, error) {
+	if propertyType == Constant {
+		return pd.determineTypeForConstant(constantReference)
 	}
 
-	out := string(def.Type)
-	switch def.Type {
+	if propertyType == Object {
+		return pd.determineTypeForObject(modelReference)
+	}
+
+	out := string(propertyType)
+	switch propertyType {
 	case Boolean:
 		out = "bool"
 		break
@@ -107,10 +106,36 @@ func (pd packageDefinition) determineTypeForProperty(def PropertyDefinition) (*s
 		out = "map[string]string"
 		break
 
-		// TODO: implement others incl list
+		// TODO: other types
 	}
 
 	return &out, nil
+}
+
+func (pd packageDefinition) determineTypeForConstant(constantReference *string) (*string, error) {
+	if constantReference == nil {
+		return nil, fmt.Errorf("constant without a reference")
+	}
+
+	ref, err := parseReference(*constantReference)
+	if err != nil {
+		return nil, fmt.Errorf("parsing reference %q", *constantReference)
+	}
+
+	return &ref.name, nil
+}
+
+func (pd packageDefinition) determineTypeForObject(modelReference *string) (*string, error) {
+	if modelReference == nil {
+		return nil, fmt.Errorf("model without a reference")
+	}
+
+	ref, err := parseReference(*modelReference)
+	if err != nil {
+		return nil, fmt.Errorf("parsing reference %q", *modelReference)
+	}
+
+	return &ref.name, nil
 }
 
 func sortFields(input []templates.PropertyDefinition) []templates.PropertyDefinition {

@@ -68,13 +68,15 @@ type ConstantDefinition struct {
 type ModelDefinition map[string]PropertyDefinition
 
 type PropertyDefinition struct {
-	Type        PropertyType          `json:"type"`
-	Required    bool                  `json:"required"`
-	Optional    bool                  `json:"optional"`
-	DeltaUpdate bool                  `json:"deltaUpdate"`
-	Default     *interface{}          `json:"default,omitempty"`
-	ForceNew    bool                  `json:"forceNew,omitempty"`
-	Validation  *ValidationDefinition `json:"validation,omitempty"`
+	JsonName        string                `json:"jsonName"`
+	Type            PropertyType          `json:"type"`
+	ListElementType *PropertyType         `json:"listElementType,omitempty"`
+	Required        bool                  `json:"required"`
+	Optional        bool                  `json:"optional"`
+	DeltaUpdate     bool                  `json:"deltaUpdate"`
+	Default         *interface{}          `json:"default,omitempty"`
+	ForceNew        bool                  `json:"forceNew,omitempty"`
+	Validation      *ValidationDefinition `json:"validation,omitempty"`
 
 	// when a constant, values can come from another reference
 	ConstantReference *string `json:"constantReference,omitempty"`
@@ -88,6 +90,7 @@ var (
 	Boolean  PropertyType = "Boolean"
 	Constant PropertyType = "Constant"
 	Integer  PropertyType = "Integer"
+	List     PropertyType = "List"
 	Location PropertyType = "Location"
 	Object   PropertyType = "Object"
 	Tags     PropertyType = "Tags"
