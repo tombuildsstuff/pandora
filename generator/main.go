@@ -26,16 +26,15 @@ func main() {
 }
 
 func generateDataPlane(endpoint, outputDirectory string) error {
-	return nil
-	//out := fmt.Sprintf("%s/data-plane", outputDirectory)
-	//client := services.NewResourceManagerService(endpoint)
-	//generator := services.NewResourceManagerGenerator(client, out)
-	//return generator.Generate()
+	out := fmt.Sprintf("%s/data-plane", outputDirectory)
+	client := services.NewDataPlaneService(endpoint)
+	generator := services.NewSdkGenerator(client, out)
+	return generator.Generate()
 }
 
 func generateResourceManager(endpoint, outputDirectory string) error {
 	out := fmt.Sprintf("%s/resource-manager", outputDirectory)
 	client := services.NewResourceManagerService(endpoint)
-	generator := services.NewResourceManagerGenerator(client, out)
+	generator := services.NewSdkGenerator(client, out)
 	return generator.Generate()
 }

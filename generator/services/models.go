@@ -1,17 +1,17 @@
 package services
 
-type ResourceManagerApiResponse struct {
-	Apis map[string]ApiDetails `json:"apis"`
+type ApisResponse struct {
+	Apis map[string]ApiReference `json:"apis"`
 }
 
-type ApiDetails struct {
+type ApiReference struct {
 	Uri      string `json:"uri"`
 	Generate bool   `json:"generate"`
 }
 
-type SupportedVersionsResponse struct {
+type ApiVersionsResponse struct {
 	Versions         map[string]VersionDetails `json:"versions"`
-	ResourceProvider string                    `json:"resourceProvider"`
+	ResourceProvider *string                   `json:"resourceProvider,omitempty"`
 }
 
 type VersionDetails struct {
@@ -20,11 +20,17 @@ type VersionDetails struct {
 	Preview  bool   `json:"preview"`
 }
 
-type SupportedTypesResponse struct {
-	Types map[string]TypeDefinition `json:"types"`
+type ApiOperationMetaData struct {
+	Name          string `json:"name"`
+	OperationsUri string `json:"operations"`
+	SchemaUri     string `json:"schema"`
 }
 
-type TypeDefinition struct {
+type ApiVersionOperationsResponse struct {
+	Types map[string]Operation `json:"types"`
+}
+
+type Operation struct {
 	Uri        string               `json:"uri"`
 	ResourceId ResourceIdDefinition `json:"resourceId"`
 }
@@ -108,9 +114,3 @@ type ValidationType string
 var (
 	Range ValidationType = "Range"
 )
-
-type OperationMetaData struct {
-	Name          string `json:"name"`
-	OperationsUri string `json:"operations"`
-	SchemaUri     string `json:"schema"`
-}

@@ -162,15 +162,22 @@ func (p sdkGenerator) generateOperations(serviceDef serviceDefinition, packageDe
 	typeName := packageDef.typeName
 	resourceProvider := serviceDef.resourceProvider
 
-	// this is resource manager so resourceProvider is guaranteed
-	if resourceProvider == nil {
-		return fmt.Errorf("resourceProvider was nil for a Resource Manager Operation")
-	}
-
-	templater := templates.NewResourceManagerClientTemplater(packageName, typeName, apiVersion, *resourceProvider, operations)
-	output, err := templater.Build()
-	if err != nil {
-		return fmt.Errorf("templating: %+v", err)
+	var output *string
+	var err error
+	if resourceProvider != nil {
+		log.Printf("[DEBUG] Generating Resource Manager Client..")
+		templater := templates.NewResourceManagerClientTemplater(packageName, typeName, apiVersion, *resourceProvider, operations)
+		output, err = templater.Build()
+		if err != nil {
+			return fmt.Errorf("templating: %+v", err)
+		}
+	} else {
+		log.Printf("[DEBUG] Generating Data Plane Client..")
+		templater := templates.NewDataPlaneClientTemplater(packageName, typeName, apiVersion, operations)
+		output, err = templater.Build()
+		if err != nil {
+			return fmt.Errorf("templating: %+v", err)
+		}
 	}
 
 	return goFmtAndWriteToFile(filePath, *output)

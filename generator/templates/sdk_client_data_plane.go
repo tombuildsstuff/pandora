@@ -6,34 +6,23 @@ import (
 	"strings"
 )
 
-type ResourceManagerClientTemplater struct {
-	packageName      string
-	typeName         string
-	apiVersion       string
-	resourceProvider string
-	operations       []ClientOperation
+type DataPlaneClientTemplater struct {
+	packageName string
+	typeName    string
+	apiVersion  string
+	operations  []ClientOperation
 }
 
-type ClientOperation struct {
-	Name                 string
-	Method               string
-	LongRunningOperation bool
-	ExpectedStatusCodes  []int
-	RequestObjectName    *string
-	ResponseObjectName   *string
-}
-
-func NewResourceManagerClientTemplater(packageName, typeName, apiVersion, resourceProvider string, operations []ClientOperation) ResourceManagerClientTemplater {
-	return ResourceManagerClientTemplater{
-		packageName:      packageName,
-		typeName:         typeName,
-		apiVersion:       apiVersion,
-		resourceProvider: resourceProvider,
-		operations:       operations,
+func NewDataPlaneClientTemplater(packageName, typeName, apiVersion string, operations []ClientOperation) DataPlaneClientTemplater {
+	return DataPlaneClientTemplater{
+		packageName: packageName,
+		typeName:    typeName,
+		apiVersion:  apiVersion,
+		operations:  operations,
 	}
 }
 
-func (t ResourceManagerClientTemplater) Build() (*string, error) {
+func (t DataPlaneClientTemplater) Build() (*string, error) {
 	clientName := fmt.Sprintf("%sClient", strings.Title(t.typeName))
 	constructors, err := t.constructors(clientName)
 	if err != nil {
@@ -73,7 +62,7 @@ type %s struct {
 	return &out, nil
 }
 
-func (t ResourceManagerClientTemplater) constructors(clientName string) (*string, error) {
+func (t DataPlaneClientTemplater) constructors(clientName string) (*string, error) {
 	format := fmt.Sprintf(`
 func New%[1]s(subscriptionId string, authorizer sdk.Authorizer) %[1]s {
 	return New%[1]sWithBaseURI(endpoints.DefaultManagementEndpoint, subscriptionId, authorizer)
@@ -90,7 +79,7 @@ func New%[1]sWithBaseURI(endpoint string, subscriptionId string, authorizer sdk.
 	return &format, nil
 }
 
-func (t ResourceManagerClientTemplater) methods(clientName string) (*string, error) {
+func (t DataPlaneClientTemplater) methods(clientName string) (*string, error) {
 	output := make([]string, 0)
 
 	sortedMethods := t.sortMethods(t.operations)
@@ -112,18 +101,15 @@ func (t ResourceManagerClientTemplater) methods(clientName string) (*string, err
 	return &result, nil
 }
 
-func (t ResourceManagerClientTemplater) metadata(clientName string) string {
+func (t DataPlaneClientTemplater) metadata(clientName string) string {
 	return fmt.Sprintf(`
 func (client %[1]s) MetaData() sdk.ClientMetaData {
-	resourceProvider := "%[2]s"
-	return sdk.ClientMetaData{
-		ResourceProvider: &resourceProvider,
-	}
+	return sdk.ClientMetaData{}
 }
-`, clientName, t.resourceProvider)
+`, clientName)
 }
 
-func (t ResourceManagerClientTemplater) sortMethods(input []ClientOperation) []ClientOperation {
+func (t DataPlaneClientTemplater) sortMethods(input []ClientOperation) []ClientOperation {
 	names := make([]string, 0)
 	indexes := make(map[string]int, len(input))
 	for i, v := range input {

@@ -2,6 +2,7 @@ package templates
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -45,17 +46,33 @@ func (t ConstantsTemplater) Build() (*string, error) {
 func (t ConstantsTemplater) constantsModels() (*string, error) {
 	output := make([]string, 0)
 
-	for name, metadata := range t.constants {
-		values := make([]string, 0)
-		for k, v := range metadata.Values {
-			values = append(values, fmt.Sprintf("\t%s %s = %q", k, name, v))
+	// sort the constant types
+	constantNames := make([]string, 0)
+	for k := range t.constants {
+		constantNames = append(constantNames, k)
+	}
+	sort.Strings(constantNames)
+
+	for _, constantName := range constantNames {
+		metadata := t.constants[constantName]
+		lines := make([]string, 0)
+
+		// then sort the values for this constant
+		keys := make([]string, 0)
+		for k := range metadata.Values {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			v := metadata.Values[k]
+			lines = append(lines, fmt.Sprintf("\t%s %s = %q", k, constantName, v))
 		}
 		code := fmt.Sprintf(`type %s string
 
 var (
 %s
 )
-`, name, strings.Join(values, "\n"))
+`, constantName, strings.Join(lines, "\n"))
 		//if metadata.CaseInsensitive {
 		//	// TODO: add a parse function that's case sensitive
 		//	// NOTE: should we add a parse function anyway?

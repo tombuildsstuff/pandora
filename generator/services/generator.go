@@ -9,13 +9,13 @@ import (
 	"github.com/tombuildsstuff/pandora/generator/utils"
 )
 
-type ResourceManagerGenerator struct {
-	client          ResourceManagerService
+type SdkGenerator struct {
+	client          PandoraApi
 	outputDirectory string
 }
 
-func NewResourceManagerGenerator(client ResourceManagerService, outputDirectory string) ResourceManagerGenerator {
-	return ResourceManagerGenerator{
+func NewSdkGenerator(client PandoraApi, outputDirectory string) SdkGenerator {
+	return SdkGenerator{
 		outputDirectory: outputDirectory,
 		client:          client,
 	}
@@ -25,7 +25,7 @@ func NewResourceManagerGenerator(client ResourceManagerService, outputDirectory 
 // multiple operations within a single package
 // e.g. `namespace_client.go`, `namespace_models.go` and `namespace`
 
-func (g ResourceManagerGenerator) Generate() error {
+func (g SdkGenerator) Generate() error {
 	log.Printf("[DEBUG] Populating API information into Service Definitions..")
 	services, err := g.buildServiceDefinitions()
 	if err != nil {
@@ -62,9 +62,9 @@ func (g ResourceManagerGenerator) Generate() error {
 	return nil
 }
 
-func (g ResourceManagerGenerator) buildServiceDefinitions() (*[]serviceDefinition, error) {
+func (g SdkGenerator) buildServiceDefinitions() (*[]serviceDefinition, error) {
 	log.Printf("[DEBUG] Retrieving Supported API's..")
-	apis, err := g.client.SupportedApis()
+	apis, err := g.client.Apis()
 	if err != nil {
 		return nil, fmt.Errorf("retrieving supported API's: %+v", err)
 	}
@@ -78,7 +78,7 @@ func (g ResourceManagerGenerator) buildServiceDefinitions() (*[]serviceDefinitio
 		}
 
 		log.Printf("[DEBUG] Retrieving available API versions..")
-		availableApiVersions, err := g.client.SupportedVersionsForApi(serviceDetails)
+		availableApiVersions, err := g.client.VersionsForApi(serviceDetails)
 		if err != nil {
 			return nil, fmt.Errorf("retrieving available API versions: %+v", err)
 		}
@@ -107,13 +107,13 @@ func (g ResourceManagerGenerator) buildServiceDefinitions() (*[]serviceDefinitio
 			}
 
 			log.Printf("[DEBUG] Retrieving API Operations for %q..", operationName)
-			apiOperations, err := g.client.OperationsForType(*operationMetaData)
+			apiOperations, err := g.client.APIOperationsForApiVersion(*operationMetaData)
 			if err != nil {
 				return nil, fmt.Errorf("retrieving api operations for %q: %+v", operationName, err)
 			}
 
 			log.Printf("[DEBUG] Retrieving Schemas for %q..", operationName)
-			schemas, err := g.client.SchemaForType(*operationMetaData)
+			schemas, err := g.client.SchemasForApiVersion(*operationMetaData)
 			if err != nil {
 				return nil, fmt.Errorf("retrieving schema for %q: %+v", operationName, err)
 			}
@@ -134,7 +134,7 @@ func (g ResourceManagerGenerator) buildServiceDefinitions() (*[]serviceDefinitio
 		services = append(services, serviceDefinition{
 			serviceName:      serviceName,
 			apiVersion:       apiVersionDetails.apiVersion,
-			resourceProvider: &availableApiVersions.ResourceProvider,
+			resourceProvider: availableApiVersions.ResourceProvider,
 			packages:         packages,
 		})
 	}
@@ -147,7 +147,7 @@ type apiVersionDetails struct {
 	details    VersionDetails
 }
 
-func (g ResourceManagerGenerator) determineApiVersion(versions *SupportedVersionsResponse) (*apiVersionDetails, error) {
+func (g SdkGenerator) determineApiVersion(versions *ApiVersionsResponse) (*apiVersionDetails, error) {
 	if versions == nil {
 		return nil, fmt.Errorf("no versions were available!")
 	}

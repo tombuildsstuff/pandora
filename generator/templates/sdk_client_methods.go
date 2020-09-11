@@ -11,6 +11,15 @@ type methodTemplater struct {
 	operation  ClientOperation
 }
 
+type ClientOperation struct {
+	Name                 string
+	Method               string
+	LongRunningOperation bool
+	ExpectedStatusCodes  []int
+	RequestObjectName    *string
+	ResponseObjectName   *string
+}
+
 func (t methodTemplater) Build() (*string, error) {
 	var result string
 	switch strings.ToUpper(t.operation.Method) {

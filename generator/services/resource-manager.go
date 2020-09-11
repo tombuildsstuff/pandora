@@ -6,26 +6,50 @@ import (
 	"net/http"
 )
 
-type ResourceManagerService struct {
-	endpoint string
+type PandoraApi interface {
+	Apis() (*ApisResponse, error)
+	VersionsForApi(api ApiReference) (*ApiVersionsResponse, error)
+	MetaDataForOperation(definition Operation) (*ApiOperationMetaData, error)
+	OperationsForApiVersion(version VersionDetails) (*ApiVersionOperationsResponse, error)
+	APIOperationsForApiVersion(operation ApiOperationMetaData) (*OperationsResponse, error)
+	SchemasForApiVersion(operation ApiOperationMetaData) (*SchemaResponse, error)
 }
 
-func NewResourceManagerService(endpoint string) ResourceManagerService {
-	return ResourceManagerService{
-		endpoint: endpoint,
+type PandoraApiService struct {
+	endpoint        string
+	resourceManager bool
+}
+
+func NewDataPlaneService(endpoint string) PandoraApiService {
+	return PandoraApiService{
+		endpoint:        endpoint,
+		resourceManager: false,
 	}
 }
 
-// TODO: rename this functions and structs
+func NewResourceManagerService(endpoint string) PandoraApiService {
+	return PandoraApiService{
+		endpoint:        endpoint,
+		resourceManager: true,
+	}
+}
 
-// SupportedApis returns the supported Resource Manager API's available in Pandora
-func (rm ResourceManagerService) SupportedApis() (*ResourceManagerApiResponse, error) {
-	resp, err := rm.getJson(fmt.Sprintf("%s/apis/v1/resource-manager", rm.endpoint))
+func (rm PandoraApiService) segment() string {
+	if rm.resourceManager {
+		return "resource-manager"
+	}
+
+	return "data-plane"
+}
+
+func (rm PandoraApiService) Apis() (*ApisResponse, error) {
+	segment := rm.segment()
+	resp, err := rm.getJson(fmt.Sprintf("%s/apis/v1/%s", rm.endpoint, segment))
 	if err != nil {
 		return nil, fmt.Errorf("retrieving JSON: %+v", err)
 	}
 
-	var out ResourceManagerApiResponse
+	var out ApisResponse
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, fmt.Errorf("decoding JSON: %+v", err)
 	}
@@ -33,14 +57,13 @@ func (rm ResourceManagerService) SupportedApis() (*ResourceManagerApiResponse, e
 	return &out, nil
 }
 
-// SupportedVersionsForApi returns the supported API versions for this Api definition
-func (rm ResourceManagerService) SupportedVersionsForApi(api ApiDetails) (*SupportedVersionsResponse, error) {
+func (rm PandoraApiService) VersionsForApi(api ApiReference) (*ApiVersionsResponse, error) {
 	resp, err := rm.getJson(fmt.Sprintf("%s%s", rm.endpoint, api.Uri))
 	if err != nil {
 		return nil, fmt.Errorf("retrieving JSON: %+v", err)
 	}
 
-	var out SupportedVersionsResponse
+	var out ApiVersionsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, fmt.Errorf("decoding JSON: %+v", err)
 	}
@@ -48,14 +71,13 @@ func (rm ResourceManagerService) SupportedVersionsForApi(api ApiDetails) (*Suppo
 	return &out, nil
 }
 
-// OperationsForApiVersion returns the supported operation types for this Api version
-func (rm ResourceManagerService) OperationsForApiVersion(version VersionDetails) (*SupportedTypesResponse, error) {
+func (rm PandoraApiService) OperationsForApiVersion(version VersionDetails) (*ApiVersionOperationsResponse, error) {
 	resp, err := rm.getJson(fmt.Sprintf("%s%s", rm.endpoint, version.Uri))
 	if err != nil {
 		return nil, fmt.Errorf("retrieving JSON: %+v", err)
 	}
 
-	var out SupportedTypesResponse
+	var out ApiVersionOperationsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, fmt.Errorf("decoding JSON: %+v", err)
 	}
@@ -63,14 +85,13 @@ func (rm ResourceManagerService) OperationsForApiVersion(version VersionDetails)
 	return &out, nil
 }
 
-// MetaDataForOperation returns the metadata for this API version
-func (rm ResourceManagerService) MetaDataForOperation(definition TypeDefinition) (*OperationMetaData, error) {
+func (rm PandoraApiService) MetaDataForOperation(definition Operation) (*ApiOperationMetaData, error) {
 	resp, err := rm.getJson(fmt.Sprintf("%s%s", rm.endpoint, definition.Uri))
 	if err != nil {
 		return nil, fmt.Errorf("retrieving JSON: %+v", err)
 	}
 
-	var out OperationMetaData
+	var out ApiOperationMetaData
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, fmt.Errorf("decoding JSON: %+v", err)
 	}
@@ -78,8 +99,8 @@ func (rm ResourceManagerService) MetaDataForOperation(definition TypeDefinition)
 	return &out, nil
 }
 
-// OperationsForType returns the Operations supported by this Type for this Api version
-func (rm ResourceManagerService) OperationsForType(operation OperationMetaData) (*OperationsResponse, error) {
+// APIOperationsForApiVersion returns the Operations supported by this Type for this Api version
+func (rm PandoraApiService) APIOperationsForApiVersion(operation ApiOperationMetaData) (*OperationsResponse, error) {
 	resp, err := rm.getJson(fmt.Sprintf("%s%s", rm.endpoint, operation.OperationsUri))
 	if err != nil {
 		return nil, fmt.Errorf("retrieving JSON: %+v", err)
@@ -93,8 +114,8 @@ func (rm ResourceManagerService) OperationsForType(operation OperationMetaData) 
 	return &out, nil
 }
 
-// SchemaForType returns the Schema supported by this Type for this API version
-func (rm ResourceManagerService) SchemaForType(operation OperationMetaData) (*SchemaResponse, error) {
+// SchemasForApiVersion returns the Schema supported by this Type for this API version
+func (rm PandoraApiService) SchemasForApiVersion(operation ApiOperationMetaData) (*SchemaResponse, error) {
 	resp, err := rm.getJson(fmt.Sprintf("%s%s", rm.endpoint, operation.SchemaUri))
 	if err != nil {
 		return nil, fmt.Errorf("retrieving JSON: %+v", err)
@@ -108,7 +129,7 @@ func (rm ResourceManagerService) SchemaForType(operation OperationMetaData) (*Sc
 	return &out, nil
 }
 
-func (rm ResourceManagerService) getJson(endpoint string) (*http.Response, error) {
+func (rm PandoraApiService) getJson(endpoint string) (*http.Response, error) {
 	resp, err := http.Get(endpoint)
 	if err != nil {
 		return nil, err

@@ -10,13 +10,13 @@ var (
 type EntityStatus string
 
 var (
-	ReceiveDisabled EntityStatus = "ReceiveDisabled"
-	Renaming        EntityStatus = "Renaming"
-	Disabled        EntityStatus = "Disabled"
+	Active          EntityStatus = "Active"
 	Creating        EntityStatus = "Creating"
 	Deleting        EntityStatus = "Deleting"
+	Disabled        EntityStatus = "Disabled"
+	ReceiveDisabled EntityStatus = "ReceiveDisabled"
+	Renaming        EntityStatus = "Renaming"
 	Restoring       EntityStatus = "Restoring"
 	SendDisabled    EntityStatus = "SendDisabled"
 	Unknown         EntityStatus = "Unknown"
-	Active          EntityStatus = "Active"
 )
