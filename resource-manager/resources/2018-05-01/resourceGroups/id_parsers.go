@@ -1,19 +1,19 @@
-package groups
+package resourceGroups
 
 import "fmt"
 
-type ResourceGroupId struct {
+type ResourceGroupsId struct {
 	SubscriptionId string
 	ResourceGroup  string
 }
 
-func NewResourceGroupId(subscriptionId string, resourceGroup string) ResourceGroupId {
-	return ResourceGroupId{
+func NewResourceGroupsId(subscriptionId string, resourceGroup string) ResourceGroupsId {
+	return ResourceGroupsId{
 		SubscriptionId: subscriptionId,
 		ResourceGroup:  resourceGroup,
 	}
 }
 
-func (id ResourceGroupId) ID() string {
+func (id ResourceGroupsId) ID() string {
 	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s", id.SubscriptionId, id.ResourceGroup)
 }

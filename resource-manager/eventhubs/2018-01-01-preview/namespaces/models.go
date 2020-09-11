@@ -25,13 +25,12 @@ func (m CreateNamespaceInput) Validate() error {
 
 type CreateNamespaceProperties struct {
 	IsAutoInflateEnabled *bool `json:"isAutoInflateEnabled,omitempty"`
-	ZoneRedundant        *bool `json:"zoneRedundant,omitempty"`
+	ZoneRedundant        *bool `json:"ZoneRedundant,omitempty"`
 }
 
 type GetNamespace struct {
 	Location   string                 `json:"location"`
 	Properties GetNamespaceProperties `json:"properties"`
-	Sku        Sku                    `json:"sku"`
 	Tags       map[string]string      `json:"tags"`
 }
 
@@ -47,24 +46,6 @@ type Sku struct {
 	Tier     SkuTier `json:"tier"`
 }
 
-func (m Sku) Validate() error {
-	var result error
-
-	// TODO: range validation
-
-	return result
-}
-
 type UpdateNamespaceInput struct {
-	Location string `json:"location"`
-}
-
-func (m UpdateNamespaceInput) Validate() error {
-	var result error
-
-	if m.Location == "" {
-		result = multierror.Append(result, fmt.Errorf("Location cannot be empty"))
-	}
-
-	return result
+	Tags *map[string]string `json:"tags,omitempty"`
 }

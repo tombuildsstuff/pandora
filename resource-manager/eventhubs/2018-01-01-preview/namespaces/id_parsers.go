@@ -17,5 +17,5 @@ func NewNamespacesId(subscriptionId string, resourceGroup string, namespace stri
 }
 
 func (id NamespacesId) ID() string {
-	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.EventHubs/namespaces/%s", id.SubscriptionId, id.ResourceGroup, id.Namespace)
+	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.EventHub/namespaces/%s", id.SubscriptionId, id.ResourceGroup, id.Namespace)
 }

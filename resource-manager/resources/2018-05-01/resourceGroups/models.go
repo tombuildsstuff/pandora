@@ -1,4 +1,4 @@
-package groups
+package resourceGroups
 
 import (
 	"fmt"
@@ -6,12 +6,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-type CreateResourceGroupInput struct {
+type CreateInput struct {
 	Location string             `json:"location"`
 	Tags     *map[string]string `json:"tags,omitempty"`
 }
 
-func (m CreateResourceGroupInput) Validate() error {
+func (m CreateInput) Validate() error {
 	var result error
 
 	if m.Location == "" {
@@ -26,6 +26,6 @@ type GetResourceGroup struct {
 	Tags     map[string]string `json:"tags"`
 }
 
-type UpdateResourceGroupInput struct {
+type UpdateInput struct {
 	Tags *map[string]string `json:"tags,omitempty"`
 }

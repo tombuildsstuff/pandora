@@ -95,7 +95,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*http.Response, erro
 		ExpectedStatusCodes: []int{
 %[4]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
 	
 	return client.baseClient.Delete(ctx, req);
@@ -111,7 +111,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (sdk.Poller, error) {
 		ExpectedStatusCodes: []int{
 %[4]s,
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
 
 	return client.baseClient.DeleteThenPoll(ctx, req)
@@ -132,7 +132,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*%[2]s%[3]sResponse,
 		ExpectedStatusCodes: []int{
 %[5]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
 
 	var out %[4]s
@@ -159,7 +159,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 		ExpectedStatusCodes: []int{
 %[5]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
 	
 	if _, err := client.baseClient.PatchJson(ctx, req); err != nil {
@@ -179,7 +179,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Pol
 		ExpectedStatusCodes: []int{
 %[5]s,
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
 
 	return client.baseClient.PatchJsonThenPoll(ctx, req)
@@ -196,7 +196,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 		ExpectedStatusCodes: []int{
 %[5]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
 	
 	if _, err := client.baseClient.PutJson(ctx, req); err != nil {
@@ -216,7 +216,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Pol
 		ExpectedStatusCodes: []int{
 %[5]s,
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.subscriptionId, client.apiVersion),
+		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
 
 	return client.baseClient.PutJsonThenPoll(ctx, req)

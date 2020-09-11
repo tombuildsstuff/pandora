@@ -14,13 +14,13 @@ type ApiClient interface {
 	MetaData() ClientMetaData
 }
 
-type ArmResourceId interface {
-	ID(subscriptionId string) string
+type ResourceId interface {
+	ID() string
 }
 
-func BuildResourceManagerURI(id ArmResourceId, subscriptionId, apiVersion string) string {
+func BuildResourceManagerURI(id ResourceId, apiVersion string) string {
 	// TODO: support for additional query params
-	return fmt.Sprintf("%s?api-version=%s", id.ID(subscriptionId), apiVersion)
+	return fmt.Sprintf("%s?api-version=%s", id.ID(), apiVersion)
 }
 
 type ClientMetaData struct {

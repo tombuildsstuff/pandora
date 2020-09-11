@@ -8,7 +8,7 @@ import (
 type ConstantMetaData struct {
 	// the type *has* to be a string, since these are treated as Enum's on the Azure side
 
-	Values          []string
+	Values          map[string]string
 	CaseInsensitive bool
 }
 
@@ -47,8 +47,8 @@ func (t ConstantsTemplater) constantsModels() (*string, error) {
 
 	for name, metadata := range t.constants {
 		values := make([]string, 0)
-		for _, v := range metadata.Values {
-			values = append(values, fmt.Sprintf("\t%s %s = %q", v, name, v))
+		for k, v := range metadata.Values {
+			values = append(values, fmt.Sprintf("\t%s %s = %q", k, name, v))
 		}
 		code := fmt.Sprintf(`type %s string
 

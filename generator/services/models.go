@@ -60,8 +60,8 @@ type SchemaResponse struct {
 }
 
 type ConstantDefinition struct {
-	Values          []string `json:"values"`
-	CaseInsensitive bool     `json:"caseInsensitive"`
+	Values          map[string]string `json:"values"`
+	CaseInsensitive bool              `json:"caseInsensitive"`
 	// TODO: update mappings (e.g. can go from one to another but not back again)
 }
 
