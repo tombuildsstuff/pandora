@@ -2,9 +2,11 @@ package sdk
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -29,7 +31,7 @@ func newLongRunningOperationPoller(response *http.Response, baseClient *BaseClie
 		return nil, fmt.Errorf("response cannot be nil")
 	}
 
-	if response.StatusCode != http.StatusAccepted {
+	if response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusAccepted {
 		return nil, fmt.Errorf("status code %d (%s) is not a long running operation", response.StatusCode, response.Status)
 	}
 
@@ -80,16 +82,40 @@ func (p *LongRunningOperationPoller) PollUntilDone(ctx context.Context) error {
 
 		// we should be done
 		if p.latestPollResponse.StatusCode == http.StatusOK {
-			return nil
-		}
+			var details longRunningOperationResponse
+			if json.NewDecoder(p.latestPollResponse.Body).Decode(&details); err != nil {
+				return fmt.Errorf("decoding latest polling response")
+			}
 
-		// keep waiting
-		//if p.latestPollResponse.StatusCode == http.StatusAccepted {
-		//	// TODO: we could parse the location/retry-after header out, but it appears unnecessary
-		//}
+			if details.Status == "" || strings.EqualFold(details.Status, "Succeeded") {
+				return nil
+			}
+
+			if strings.EqualFold(details.Status, "Failed") {
+				if details.Error != nil {
+					return fmt.Errorf("polling for status (Code %q / Message %q)", details.Error.Code, details.Error.Message)
+				}
+
+				return fmt.Errorf("polling for status: %q", details.Status)
+			}
+
+			return fmt.Errorf("unexpected status %q", details.Status)
+		}
 
 		continue
 	}
 
 	return nil
+}
+
+type longRunningOperationResponse struct {
+	Id     string                     `json:"id"`
+	Name   string                     `json:"name"`
+	Status string                     `json:"status"`
+	Error  *longRunningOperationError `json:"error,omitempty"'`
+}
+
+type longRunningOperationError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
 }

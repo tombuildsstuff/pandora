@@ -7,18 +7,19 @@ import (
 	"os"
 	"time"
 
+	"github.com/tombuildsstuff/pandora/resource-manager/appConfiguration/2019-10-01/configurationStore"
 	"github.com/tombuildsstuff/pandora/resource-manager/eventhubs/2018-01-01-preview/namespaces"
 	"github.com/tombuildsstuff/pandora/resource-manager/resources/2018-05-01/resourceGroups"
 	"github.com/tombuildsstuff/pandora/sdk"
 )
 
 func main() {
-	if err := run(context.TODO(), true); err != nil {
+	if err := run(context.TODO(), false, true); err != nil {
 		panic(err)
 	}
 }
 
-func run(ctx context.Context, eventhub bool) error {
+func run(ctx context.Context, eventhub, appConfig bool) error {
 	clientId := os.Getenv("ARM_CLIENT_ID")
 	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
 	subscriptionId := os.Getenv("ARM_SUBSCRIPTION_ID")
@@ -39,6 +40,7 @@ func run(ctx context.Context, eventhub bool) error {
 	auth := sdk.NewClientSecretAuthorizer(clientId, clientSecret, tenantId)
 	groupsClient := resourceGroups.NewResourceGroupsClient(subscriptionId, auth)
 	namespacesClient := namespaces.NewNamespacesClient(subscriptionId, auth)
+	appConfigsClient := configurationStore.NewConfigurationStoreClient(subscriptionId, auth)
 
 	id := resourceGroups.NewResourceGroupsId(subscriptionId, name)
 
@@ -76,7 +78,6 @@ func run(ctx context.Context, eventhub bool) error {
 	log.Printf("Value for the Tag 'hello': %q..", group.ResourceGroups.Tags["hello"])
 
 	if eventhub {
-
 		// add a nested item
 		namespaceName := fmt.Sprintf("tomdev%d", rInt)
 		namespaceId := namespaces.NewNamespacesId(id.SubscriptionId, id.ResourceGroup, namespaceName)
@@ -109,6 +110,7 @@ func run(ctx context.Context, eventhub bool) error {
 			return fmt.Errorf("retrieving namespace: %+v", err)
 		}
 
+		log.Printf("Sku is %q", string(namespace.Namespaces.Sku.Name))
 		log.Printf("ServiceBus Endpoint is at %q", namespace.Namespaces.Properties.ServiceBusEndpoint)
 		time.Sleep(10 * time.Second)
 
@@ -122,6 +124,45 @@ func run(ctx context.Context, eventhub bool) error {
 			return fmt.Errorf("waiting for deletion: %+v", err)
 		}
 		log.Printf("Deleted %q", namespaceName)
+	}
+
+	if appConfig {
+		log.Printf("[DEBUG] Creating app config..")
+		configStoreId := configurationStore.NewConfigurationStoreId(subscriptionId, name, fmt.Sprintf("tom-appconfig%d", rInt))
+		createStoreInput := configurationStore.CreateStoreInput{
+			Location: group.ResourceGroups.Location,
+			Sku: configurationStore.Sku{
+				Name: configurationStore.Standard,
+			},
+			Tags: &map[string]string{},
+		}
+		if err := createStoreInput.Validate(); err != nil {
+			return err
+		}
+		poller, err := appConfigsClient.Create(ctx, configStoreId, createStoreInput)
+		if err != nil {
+			return fmt.Errorf("creating app config: %+v", err)
+		}
+
+		log.Printf("[DEBUG] Waiting for app config..")
+		if err := poller.PollUntilDone(ctx); err != nil {
+			return fmt.Errorf("waiting for app config creation: %+v", err)
+		}
+		log.Printf("[DEBUG] Created app config.")
+
+		log.Printf("[DEBUG] Retrieving app config.")
+		config, err := appConfigsClient.Get(ctx, configStoreId)
+		if err != nil {
+			return fmt.Errorf("retrieving App Config: %+v", err)
+		}
+
+		log.Printf("[DEBUG] Endpoint: %s", config.ConfigurationStore.Properties.ConfigurationStoreEndpoint)
+		time.Sleep(2 * time.Second)
+
+		log.Printf("[DEBUG] Deleting App Configuration..")
+		if _, err = appConfigsClient.Delete(ctx, configStoreId); err != nil {
+			return fmt.Errorf("deleting App Config: %+v", err)
+		}
 	}
 
 	log.Printf("Deleting %q", name)

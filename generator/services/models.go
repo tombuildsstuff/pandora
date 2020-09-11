@@ -35,13 +35,13 @@ type ResourceIdDefinition struct {
 }
 
 type OperationsResponse struct {
-	ResourceManager *ResourceManagerMetaData       `json:"resourceManager,omitempty"`
-	Operations      map[string]OperationDefinition `json:"operations"`
+	MetaData   *OperationsMetaData            `json:"metaData,omitempty"`
+	Operations map[string]OperationDefinition `json:"operations"`
 }
 
-type ResourceManagerMetaData struct {
+type OperationsMetaData struct {
 	ApiVersion       string               `json:"apiVersion"`
-	ResourceProvider string               `json:"resourceProvider"`
+	ResourceProvider *string              `json:"resourceProvider,omitempty"`
 	ResourceId       ResourceIdDefinition `json:"resourceId"`
 }
 

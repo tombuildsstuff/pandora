@@ -31,6 +31,7 @@ type CreateNamespaceProperties struct {
 type GetNamespace struct {
 	Location   string                 `json:"location"`
 	Properties GetNamespaceProperties `json:"properties"`
+	Sku        Sku                    `json:"sku"`
 	Tags       map[string]string      `json:"tags"`
 }
 

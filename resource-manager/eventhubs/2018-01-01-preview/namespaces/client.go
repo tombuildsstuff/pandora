@@ -32,7 +32,7 @@ func (client NamespacesClient) Create(ctx context.Context, id NamespacesId, inpu
 		Body: input,
 		ExpectedStatusCodes: []int{
 			http.StatusAccepted, // TODO: unknown
-			http.StatusOK,       // TODO: unknown,
+			http.StatusCreated,  // TODO: unknown,
 		},
 		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
 	}
