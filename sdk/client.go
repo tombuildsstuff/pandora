@@ -18,6 +18,11 @@ type ResourceId interface {
 	ID() string
 }
 
+func BuildDataPlaneURI(id ResourceId, endpoint string, apiVersion string) string {
+	// TODO: support for additional query params
+	return fmt.Sprintf("%s%s?api-version=%s", endpoint, id.ID(), apiVersion)
+}
+
 func BuildResourceManagerURI(id ResourceId, apiVersion string) string {
 	// TODO: support for additional query params
 	return fmt.Sprintf("%s?api-version=%s", id.ID(), apiVersion)
@@ -28,15 +33,16 @@ type ClientMetaData struct {
 }
 
 type BaseClient struct {
+	Endpoint string
+
 	authorizer Authorizer
-	endpoint   string
 	httpClient *http.Client
 }
 
 func DefaultBaseClient(endpoint string, authorizer Authorizer) BaseClient {
 	return BaseClient{
 		authorizer: authorizer,
-		endpoint:   endpoint,
+		Endpoint:   endpoint,
 		httpClient: &http.Client{
 			Transport: http.DefaultTransport,
 		},
@@ -49,7 +55,7 @@ type DeleteHttpRequestInput struct {
 }
 
 func (c BaseClient) Delete(ctx context.Context, input DeleteHttpRequestInput) (*http.Response, error) {
-	url := fmt.Sprintf("https://%s%s", c.endpoint, input.Uri)
+	url := fmt.Sprintf("https://%s%s", c.Endpoint, input.Uri)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building request: %+v", err)
@@ -246,7 +252,7 @@ func (c BaseClient) buildUri(input string) (*string, error) {
 		return &input, nil
 	}
 
-	output := fmt.Sprintf("https://%s%s", c.endpoint, input)
+	output := fmt.Sprintf("https://%s%s", c.Endpoint, input)
 	return &output, nil
 }
 

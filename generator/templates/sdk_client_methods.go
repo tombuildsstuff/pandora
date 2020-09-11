@@ -6,9 +6,10 @@ import (
 )
 
 type methodTemplater struct {
-	clientName string
-	typeName   string
-	operation  ClientOperation
+	clientName      string
+	typeName        string
+	operation       ClientOperation
+	resourceManager bool
 }
 
 type ClientOperation struct {
@@ -98,38 +99,41 @@ func (t methodTemplater) Build() (*string, error) {
 
 func (t methodTemplater) delete() string {
 	statusCodes := t.statusCodes("\t\t\t")
+	uri := t.uri()
 	return fmt.Sprintf(`
 func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*http.Response, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
 %[4]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: %[5]s,
 	}
 	
 	return client.baseClient.Delete(ctx, req);
 }
-`, t.clientName, t.operation.Name, t.typeName, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, statusCodes, uri)
 }
 
 func (t methodTemplater) deleteLongRunningOperation() string {
 	statusCodes := t.statusCodes("\t\t\t")
+	uri := t.uri()
 	return fmt.Sprintf(`
 func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (sdk.Poller, error) {
 	req := sdk.DeleteHttpRequestInput{
 		ExpectedStatusCodes: []int{
 %[4]s,
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: %[5]s,
 	}
 
 	return client.baseClient.DeleteThenPoll(ctx, req)
 }
-`, t.clientName, t.operation.Name, t.typeName, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, statusCodes, uri)
 }
 
 func (t methodTemplater) get() string {
 	statusCodes := t.statusCodes("\t\t\t")
+	uri := t.uri()
 	return fmt.Sprintf(`
 type %[2]s%[3]sResponse struct {
 	HttpResponse *http.Response
@@ -141,7 +145,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*%[2]s%[3]sResponse,
 		ExpectedStatusCodes: []int{
 %[5]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: %[6]s,
 	}
 
 	var out %[4]s
@@ -156,11 +160,12 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId) (*%[2]s%[3]sResponse,
 	}
 	return &result, nil
 }
-`, t.clientName, t.operation.Name, t.typeName, *t.operation.ResponseObjectName, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.ResponseObjectName, statusCodes, uri)
 }
 
 func (t methodTemplater) patch() string {
 	statusCodes := t.statusCodes("\t\t\t")
+	uri := t.uri()
 	return fmt.Sprintf(`
 func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 	req := sdk.PatchHttpRequestInput{
@@ -168,7 +173,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 		ExpectedStatusCodes: []int{
 %[5]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: %[6]s,
 	}
 	
 	if _, err := client.baseClient.PatchJson(ctx, req); err != nil {
@@ -176,11 +181,12 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 	}
 	return nil
 }
-`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes, uri)
 }
 
 func (t methodTemplater) patchLongRunningOperation() string {
 	statusCodes := t.statusCodes("\t\t\t")
+	uri := t.uri()
 	return fmt.Sprintf(`
 func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Poller, error) {
 	req := sdk.Patch%[1]sInput{
@@ -188,16 +194,17 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Pol
 		ExpectedStatusCodes: []int{
 %[5]s,
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: %[6]s,
 	}
 
 	return client.baseClient.PatchJsonThenPoll(ctx, req)
 }
-`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes, uri)
 }
 
 func (t methodTemplater) put() string {
 	statusCodes := t.statusCodes("\t\t\t")
+	uri := t.uri()
 	return fmt.Sprintf(`
 func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 	req := sdk.PutHttpRequestInput{
@@ -205,7 +212,7 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 		ExpectedStatusCodes: []int{
 %[5]s
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: %[6]s,
 	}
 	
 	if _, err := client.baseClient.PutJson(ctx, req); err != nil {
@@ -213,11 +220,12 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) error {
 	}
 	return nil
 }
-`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes, uri)
 }
 
 func (t methodTemplater) putLongRunningOperation() string {
 	statusCodes := t.statusCodes("\t\t\t")
+	uri := t.uri()
 	return fmt.Sprintf(`
 func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Poller, error) {
 	req := sdk.PutHttpRequestInput{
@@ -225,12 +233,12 @@ func (client %[1]s) %[2]s(ctx context.Context, id %[3]sId, input %[4]s) (sdk.Pol
 		ExpectedStatusCodes: []int{
 %[5]s,
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: %[6]s,
 	}
 
 	return client.baseClient.PutJsonThenPoll(ctx, req)
 }
-`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes)
+`, t.clientName, t.operation.Name, t.typeName, *t.operation.RequestObjectName, statusCodes, uri)
 }
 
 func (t methodTemplater) statusCodes(indentation string) string {
@@ -311,4 +319,12 @@ func golangConstantForStatusCode(statusCode int) string {
 	}
 
 	return fmt.Sprintf("%d // TODO: document me", statusCode)
+}
+
+func (t methodTemplater) uri() string {
+	if t.resourceManager {
+		return "sdk.BuildResourceManagerURI(id, client.apiVersion)"
+	}
+
+	return "sdk.BuildDataPlaneURI(id, client.baseClient.Endpoint, client.apiVersion)"
 }

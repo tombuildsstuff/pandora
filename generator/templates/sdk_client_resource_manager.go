@@ -87,9 +87,10 @@ func (t ResourceManagerClientTemplater) methods(clientName string) (*string, err
 	sortedMethods := t.sortMethods(t.operations)
 	for _, method := range sortedMethods {
 		templater := methodTemplater{
-			clientName: clientName,
-			typeName:   strings.Title(t.typeName),
-			operation:  method,
+			clientName:      clientName,
+			typeName:        strings.Title(t.typeName),
+			operation:       method,
+			resourceManager: true,
 		}
 		formatted, err := templater.Build()
 		if err != nil {

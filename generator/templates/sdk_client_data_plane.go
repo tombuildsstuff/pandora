@@ -48,9 +48,8 @@ import (
 )
 
 type %s struct {
-	apiVersion     string
-	baseClient     sdk.BaseClient
-	subscriptionId string // TODO: making this Optional?
+	apiVersion	string
+	baseClient	sdk.BaseClient
 }
 
 %s
@@ -64,15 +63,10 @@ type %s struct {
 
 func (t DataPlaneClientTemplater) constructors(clientName string) (*string, error) {
 	format := fmt.Sprintf(`
-func New%[1]s(subscriptionId string, authorizer sdk.Authorizer) %[1]s {
-	return New%[1]sWithBaseURI(endpoints.DefaultManagementEndpoint, subscriptionId, authorizer)
-}
-
-func New%[1]sWithBaseURI(endpoint string, subscriptionId string, authorizer sdk.Authorizer) %[1]s {
+func New%[1]sWithBaseURI(endpoint string, authorizer sdk.Authorizer) %[1]s {
 	return %[1]s{
 		apiVersion:     %[2]q,
 		baseClient:     sdk.DefaultBaseClient(endpoint, authorizer),
-		subscriptionId: subscriptionId,
 	}
 }
 `, clientName, t.apiVersion)
@@ -85,9 +79,10 @@ func (t DataPlaneClientTemplater) methods(clientName string) (*string, error) {
 	sortedMethods := t.sortMethods(t.operations)
 	for _, method := range sortedMethods {
 		templater := methodTemplater{
-			clientName: clientName,
-			typeName:   strings.Title(t.typeName),
-			operation:  method,
+			clientName:      clientName,
+			typeName:        strings.Title(t.typeName),
+			operation:       method,
+			resourceManager: false,
 		}
 		formatted, err := templater.Build()
 		if err != nil {

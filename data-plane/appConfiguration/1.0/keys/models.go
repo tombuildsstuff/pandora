@@ -1,6 +1,6 @@
 package keys
 
-type GetKeysResponse struct {
+type GetKeys struct {
 	Keys     []KeyName `json:"keys"`
 	NextLink string    `json:"@nextLink"`
 }

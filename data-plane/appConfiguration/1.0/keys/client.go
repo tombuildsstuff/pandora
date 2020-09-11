@@ -6,30 +6,23 @@ import (
 	"net/http"
 
 	"github.com/tombuildsstuff/pandora/sdk"
-	"github.com/tombuildsstuff/pandora/sdk/endpoints"
 )
 
 type KeysClient struct {
-	apiVersion     string
-	baseClient     sdk.BaseClient
-	subscriptionId string // TODO: making this Optional?
+	apiVersion string
+	baseClient sdk.BaseClient
 }
 
-func NewKeysClient(subscriptionId string, authorizer sdk.Authorizer) KeysClient {
-	return NewKeysClientWithBaseURI(endpoints.DefaultManagementEndpoint, subscriptionId, authorizer)
-}
-
-func NewKeysClientWithBaseURI(endpoint string, subscriptionId string, authorizer sdk.Authorizer) KeysClient {
+func NewKeysClientWithBaseURI(endpoint string, authorizer sdk.Authorizer) KeysClient {
 	return KeysClient{
-		apiVersion:     "1.0",
-		baseClient:     sdk.DefaultBaseClient(endpoint, authorizer),
-		subscriptionId: subscriptionId,
+		apiVersion: "1.0",
+		baseClient: sdk.DefaultBaseClient(endpoint, authorizer),
 	}
 }
 
 type GetKeysResponse struct {
 	HttpResponse *http.Response
-	Keys         *GetKeysResponse
+	Keys         *GetKeys
 }
 
 func (client KeysClient) Get(ctx context.Context, id KeysId) (*GetKeysResponse, error) {
@@ -37,10 +30,10 @@ func (client KeysClient) Get(ctx context.Context, id KeysId) (*GetKeysResponse, 
 		ExpectedStatusCodes: []int{
 			http.StatusOK, // ok
 		},
-		Uri: sdk.BuildResourceManagerURI(id, client.apiVersion),
+		Uri: sdk.BuildDataPlaneURI(id, client.baseClient.Endpoint, client.apiVersion),
 	}
 
-	var out GetKeysResponse
+	var out GetKeys
 	resp, err := client.baseClient.GetJson(ctx, req, &out)
 	if err != nil {
 		return nil, fmt.Errorf("sending Request: %+v", err)
